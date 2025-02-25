@@ -5,8 +5,8 @@ gem "rails", "~> 8.0.1"
 
 gem "bootsnap", require: false
 gem "jbuilder"
-gem "jsbundling-rails"
 gem "kamal", require: false
+gem "minitest-rails", "~> 8.0.0"
 gem "pg", "~> 1.1"
 gem "propshaft"
 gem "puma", ">= 5.0"
