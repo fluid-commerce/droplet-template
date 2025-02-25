@@ -15,6 +15,7 @@ gem "solid_cable"
 gem "solid_cache"
 gem "solid_queue"
 gem "thruster", require: false
+gem "vite_rails", "~> 3.0", ">= 3.0.19"
 
 group :development, :test do
   gem "brakeman", require: false
