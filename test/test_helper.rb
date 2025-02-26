@@ -7,10 +7,6 @@ require "minitest/rails"
 
 module ActiveSupport
   class TestCase
-    setup do
-      system("bin/vite build")
-    end
-
     # Run tests in parallel with specified workers
     parallelize(workers: :number_of_processors)
 

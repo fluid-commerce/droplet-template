@@ -1,0 +1,13 @@
+{
+  "testEnvironment": "jsdom",
+  "roots": [
+    "app/javascript"
+  ],
+  "moduleDirectories": [
+    "node_modules",
+    "app/javascript"
+  ],
+  "testMatch": [
+    "**/?(*.)+(spec|test).[jt]s?(x)"
+  ]
+}
