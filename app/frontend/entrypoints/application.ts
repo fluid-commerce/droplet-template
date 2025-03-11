@@ -1,3 +1,5 @@
+import "../css/tailwind.css"
+
 // Example with type annotations
 interface AppConfig {
   environment: string;
