@@ -4,6 +4,7 @@ env:
   RUBY_VERSION: '3.4.2'
   NODE_VERSION: '23.8.0'
   YARN_VERSION: '4.7.0'
+  FONTAWESOME_NPM_AUTH_TOKEN: ${{ secrets.FONTAWESOME_NPM_AUTH_TOKEN }}
 
 on:
   pull_request:
@@ -153,11 +154,20 @@ jobs:
       - name: Enable corepack
         run: corepack enable
 
-      - name: Set up yarn
+      - name: Prepare yarn
         run: corepack prepare yarn@${{ env.YARN_VERSION }} --activate
+
+      - name: Debug Yarn config
+        run: |
+          echo "Current .yarnrc.yml contents:"
+          cat .yarnrc.yml
+          echo "\nYarn config:"
+          yarn config
 
       - name: Install JavaScript dependencies
         run: yarn install --immutable
+        env:
+          FONTAWESOME_NPM_AUTH_TOKEN: ${{ env.FONTAWESOME_NPM_AUTH_TOKEN }}
 
       - name: Build assets
         run: yarn build

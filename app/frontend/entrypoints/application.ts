@@ -1,4 +1,5 @@
 import "../css/tailwind.css"
+import "../fontawesome"
 
 // Example with type annotations
 interface AppConfig {
