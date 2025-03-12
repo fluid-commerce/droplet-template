@@ -164,6 +164,7 @@ jobs:
           echo "\nYarn config:"
           yarn config
 
+      # Uses the FONTAWESOME_NPM_AUTH_TOKEN
       - name: Install JavaScript dependencies
         run: yarn install --immutable
         env:
