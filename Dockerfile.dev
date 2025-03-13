@@ -11,12 +11,12 @@ RUN apt-get install --no-install-recommends -y build-essential curl nodejs npm l
 
 WORKDIR /rails
 
-# Copy application
+# Copy everything over
 COPY . .
 
-# Install Ruby dependencies
-RUN gem install bundler:2.6.5
-RUN bundle install
+# Install Ruby/Rails dependencies
+RUN gem install bundler:2.6.5 && \
+    bundle install
 
 # Clean and install JavaScript dependencies
 RUN rm -rf node_modules package-lock.json && \

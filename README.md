@@ -1,24 +1,13 @@
-# README
+## README
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
 
-Things you may want to cover:
+### Running fluid-droplets locally
 
-* Ruby version
+Just the rails server (port 3000)
+`bin/rails server`
 
-* System dependencies
+Running everything (port 3200)
+`bin/dev`
 
-* Configuration
-
-* Database creation
-
-* Database initialization
-
-* How to run the test suite
-
-* Services (job queues, cache servers, search engines, etc.)
-
-* Deployment instructions
-
-* ...
+Running it as a docker service (port 3600)
+`docker compose up`
