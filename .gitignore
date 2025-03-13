@@ -44,3 +44,6 @@ node_modules
 
 # ignore yarn artifacts
 .yarn/install-state.gz
+
+# ignore environment files
+.env.local

@@ -5,6 +5,11 @@ if gem list --no-installed --exact --silent foreman; then
   gem install foreman
 fi
 
+# Load environment variables from .env.local
+if [ -f .env.local ]; then
+  export $(grep -v '^#' .env.local | xargs)
+fi
+
 # Default to port 3000 if not specified
 export PORT="${PORT:-3000}"
 

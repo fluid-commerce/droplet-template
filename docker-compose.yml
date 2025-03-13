@@ -22,7 +22,7 @@ services:
       context: .
       dockerfile: Dockerfile.dev
     ports:
-      - 4000:3000
+      - 3600:3000
     volumes:
       - .:/rails
     depends_on:
