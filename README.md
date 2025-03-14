@@ -2,7 +2,7 @@
 
 ### Setup
 
-Rename `.env.local.example` to `.env.local` and fill our the env variables
+Rename `.env.local.example` to `.env.local` and fill out the env variables
 
 
 ### Running fluid-droplets locally
