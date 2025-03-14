@@ -14,12 +14,12 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "jsx": "preserve",
+    "jsx": "react",
     "baseUrl": ".",
     "paths": {
-      "~/*": ["./app/javascript/*"]
+      "~/*": ["./app/frontend/*"]
     }
   },
-  "include": ["app/javascript/**/*.ts", "app/javascript/**/*.tsx"],
+  "include": ["app/frontend/**/*.ts", "app/frontend/**/*.tsx"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

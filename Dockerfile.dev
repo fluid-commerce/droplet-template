@@ -19,9 +19,9 @@ RUN gem install bundler:2.6.5 && \
     bundle install
 
 # Clean and install JavaScript dependencies
-RUN rm -rf node_modules package-lock.json && \
-    npm cache clean --force && \
-    yarn install
+RUN rm -rf node_modules .yarn/cache && \
+    yarn cache clean && \
+    YARN_ENABLE_IMMUTABLE_INSTALLS=false yarn install
 
 # Build the typescript and javascript files
 RUN yarn build

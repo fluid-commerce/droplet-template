@@ -1,9 +1,5 @@
-<div class="flex justify-center items-center h-screen">
-  <div class="text-3xl font-bold bg-gray-900 rounded-lg p-2">
-    <i class="fa-solid fa-droplet text-teal-400"></i>
-    <i class="fa-solid fa-droplet text-fuchsia-600"></i>
-    <br>
-    <i class="fa-solid fa-droplet text-amber-300"></i>
-    <i class="fa-solid fa-droplet text-blue-600"></i>
-  </div>
-</div>
+<% content_for :head do %>
+  <%= vite_typescript_tag 'home.tsx' %>
+<% end %>
+
+<div id="root"></div>
