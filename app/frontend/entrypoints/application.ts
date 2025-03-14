@@ -1,16 +1,15 @@
-import "../css/tailwind.css"
-import "../fontawesome"
+import "../fontawesome"  // Import FontAwesome here instead of CSS
 
-// Example with type annotations
 interface AppConfig {
   environment: string;
   debug: boolean;
 }
 
-const config: AppConfig = {
-  environment: process.env.NODE_ENV || 'development',
-  debug: true
-};
+const environment = process.env.NODE_ENV || 'development';
+const debug = (environment === 'development');
 
-// TODO: Remove this after testing
-console.log('Vite ⚡️ Rails with TypeScript', config);
+const config: AppConfig = { environment, debug };
+
+if (config.debug) {
+  console.log('Vite ⚡️ Rails with TypeScript', config);
+}
