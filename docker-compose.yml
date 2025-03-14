@@ -1,4 +1,4 @@
-name: fluid-droplets-dev
+name: droplet-template
 
 services:
   postgres:
@@ -14,7 +14,7 @@ services:
     volumes:
       - postgres:/var/lib/postgresql/data
     networks:
-      - fluid-droplets-network
+      - droplet-template-network
 
   rails-app:
     container_name: rails-app
@@ -33,7 +33,7 @@ services:
       - RAILS_ENV=development
       - RUBY_YJIT_ENABLE=1
       - RAILS_LOG_TO_STDOUT=1
-      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/fluid_droplets_dev
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/droplet_template_development
     command: |
       bash -c "
         rm -f tmp/pids/server.pid && \
@@ -43,11 +43,11 @@ services:
     tty: true
     stdin_open: true
     networks:
-      - fluid-droplets-network
+      - droplet-template-network
 
 volumes:
   postgres: {}
 
 networks:
-  fluid-droplets-network:
+  droplet-template-network:
     driver: bridge

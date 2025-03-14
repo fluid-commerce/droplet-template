@@ -5,27 +5,27 @@ default: &default
 
 development:
   <<: *default
-  database: fluid_droplets_development
+  database: droplet_template_development
 
 test:
   <<: *default
-  database: fluid_droplets_test
+  database: droplet_template_test
 
 production:
   primary: &primary_production
     <<: *default
-    database: fluid_droplets_production
-    username: fluid_droplets
-    password: <%= ENV["FLUID_DROPLETS_DATABASE_PASSWORD"] %>
+    database: droplet_template_production
+    username: droplet_template
+    password: <%= ENV["DROPLET_TEMPLATE_DATABASE_PASSWORD"] %>
   cache:
     <<: *primary_production
-    database: fluid_droplets_production_cache
+    database: droplet_template_production_cache
     migrations_paths: db/cache_migrate
   queue:
     <<: *primary_production
-    database: fluid_droplets_production_queue
+    database: droplet_template_production_queue
     migrations_paths: db/queue_migrate
   cable:
     <<: *primary_production
-    database: fluid_droplets_production_cable
+    database: droplet_template_production_cable
     migrations_paths: db/cable_migrate

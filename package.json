@@ -1,5 +1,5 @@
 {
-  "name": "app",
+  "name": "droplet-template",
   "type": "module",
   "private": true,
   "devDependencies": {
