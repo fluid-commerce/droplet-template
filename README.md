@@ -1,24 +1,10 @@
-# README
+## README
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+Droplets are integrations between third-party services and Fluid. This is a repository intended to be used as an example for creating Droplets.
 
-Things you may want to cover:
+### Technology Stack
 
-* Ruby version
-
-* System dependencies
-
-* Configuration
-
-* Database creation
-
-* Database initialization
-
-* How to run the test suite
-
-* Services (job queues, cache servers, search engines, etc.)
-
-* Deployment instructions
-
-* ...
+![Ruby](https://img.shields.io/badge/Ruby-3.4.2-CC342D?logo=ruby&logoColor=white&style=flat-square)
+![Rails](https://img.shields.io/badge/Rails-8.0.2-CC0000?logo=ruby-on-rails&logoColor=white&style=flat-square)
+![Node.js](https://img.shields.io/badge/Node.js-23.8.0-339933?logo=node.js&logoColor=white&style=flat-square)
+![Yarn](https://img.shields.io/badge/Yarn-4.7.0-2C8EBB?logo=yarn&logoColor=white&style=flat-square)
