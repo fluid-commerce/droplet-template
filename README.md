@@ -8,7 +8,7 @@ Droplets are integrations between third-party services and Fluid. This is a repo
 ![Rails](https://img.shields.io/badge/Rails-8.0.2-CC0000?logo=ruby-on-rails&logoColor=white&style=flat-square)
 ![Node.js](https://img.shields.io/badge/Node.js-23.8.0-339933?logo=node.js&logoColor=white&style=flat-square)
 ![Yarn](https://img.shields.io/badge/Yarn-4.7.0-2C8EBB?logo=yarn&logoColor=white&style=flat-square)
-
+![Font Awesome](https://img.shields.io/badge/Font_Awesome-6.7.2-528DD7?style=flat-square&logo=fontawesome&logoColor=white)
 ### Setup
 
 Rename `.env.local.example` to `.env.local` and fill out the env variables

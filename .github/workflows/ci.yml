@@ -4,7 +4,6 @@ env:
   RUBY_VERSION: '3.4.2'
   NODE_VERSION: '23.8.0'
   YARN_VERSION: '4.7.0'
-  FONTAWESOME_NPM_AUTH_TOKEN: ${{ secrets.FONTAWESOME_NPM_AUTH_TOKEN }}
 
 on:
   pull_request:
@@ -164,11 +163,8 @@ jobs:
           echo "\nYarn config:"
           yarn config
 
-      # Uses the FONTAWESOME_NPM_AUTH_TOKEN
       - name: Install JavaScript dependencies
         run: yarn install --immutable
-        env:
-          FONTAWESOME_NPM_AUTH_TOKEN: ${{ env.FONTAWESOME_NPM_AUTH_TOKEN }}
 
       - name: Build assets
         run: yarn build
