@@ -156,13 +156,6 @@ jobs:
       - name: Prepare yarn
         run: corepack prepare yarn@${{ env.YARN_VERSION }} --activate
 
-      - name: Debug Yarn config
-        run: |
-          echo "Current .yarnrc.yml contents:"
-          cat .yarnrc.yml
-          echo "\nYarn config:"
-          yarn config
-
       - name: Install JavaScript dependencies
         run: yarn install --immutable
 
