@@ -11,6 +11,9 @@ Rails.application.routes.draw do
     resources :settings, only: %i[ index edit update ]
     resources :users
   end
+  get "shipstation" => "shipstation#export"
+  post "shipstation" => "shipstation#notify"
+  get "embed_ui" => "embed#index", as: :embed_ui
 
   get "up" => "rails/health#show", as: :rails_health_check
 end

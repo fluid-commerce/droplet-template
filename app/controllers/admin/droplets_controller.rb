@@ -12,7 +12,7 @@ class Admin::DropletsController < AdminController
 
   def update
     client.droplets.update
-    redirect_to admin_dashboard_index_path, notice: "Droplet created successfully"
+    redirect_to admin_dashboard_index_path, notice: "Droplet updated successfully"
   rescue FluidClient::Error => e
     redirect_to admin_dashboard_index_path, alert: "Failed to update droplet: #{e.message}"
   end

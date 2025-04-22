@@ -12,6 +12,7 @@ gem "jbuilder"
 gem "json_schemer", "~> 2.4"
 gem "kamal", require: false
 gem "minitest-rails", "~> 8.0.0"
+gem "nokogiri", "~> 1.16.0"
 gem "pg", "~> 1.1"
 gem "propshaft"
 gem "puma", ">= 5.0"
@@ -39,6 +40,7 @@ end
 
 group :test do
   gem "capybara"
+  gem "mocha", "~> 2.1.0"
   gem "selenium-webdriver"
   gem "database_cleaner-active_record"
 end
