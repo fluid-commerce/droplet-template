@@ -1,6 +1,6 @@
 class WebhooksController < ApplicationController
   skip_before_action :verify_authenticity_token
-  before_action :verify_event, unless: :company_droplet_created_event?
+  before_action :authenticate_webhook_token, if: :droplet_installed_or_uninstalled_event?
 
   def create
     case [ params[:resource], params[:event] ]
@@ -17,13 +17,17 @@ class WebhooksController < ApplicationController
 
 private
 
-  def company_droplet_created_event?
-    params[:resource] == "company_droplet" && params[:event] == "created"
+  def droplet_installed_or_uninstalled_event?
+    params[:resource] == "company_droplet" && %w[installed uninstalled].include?(params[:event])
   end
 
-  def verify_event
+  def authenticate_webhook_token
     company = find_company
-    head :unauthorized unless params[:webhook_verification_token] == company.webhook_verification_token
+    if company.blank?
+      render json: { error: "Company not found" }, status: :not_found
+    elsif params[:webhook_verification_token] != company.webhook_verification_token
+      render json: { error: "Unauthorized" }, status: :unauthorized
+    end
   end
 
   def handle_company_droplet_created
@@ -65,7 +69,7 @@ private
   end
 
   def find_company
-    Company.find_by(company_droplet_uuid: params[:company_droplet][:company_droplet_uuid]) ||
-      Company.find_by(fluid_company_id: params[:company_droplet][:fluid_company_id])
+    Company.find_by(company_droplet_uuid: params.dig(:company_droplet, :company_droplet_uuid)) ||
+      Company.find_by(fluid_company_id: params.dig(:company_droplet, :fluid_company_id))
   end
 end
