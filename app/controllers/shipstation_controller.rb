@@ -78,6 +78,7 @@ private
             xml.OrderID order["id"].to_s
             xml.OrderNumber order["order_number"].to_s
             xml.OrderDate Time.parse(order["created_at"].to_s).strftime("%m/%d/%Y %H:%M")
+            xml.LastModified Time.parse(order["created_at"].to_s).strftime("%m/%d/%Y %H:%M")
             xml.OrderStatus map_order_status(order["status"])
             xml.ShippingMethod "" # TODO: we don't have in our order response
             xml.PaymentMethod "" # TODO: we don't have in our order response
@@ -134,8 +135,8 @@ private
                     xml.Name item["title"].to_s
                     xml.Quantity item["quantity"].to_s
                     xml.UnitPrice item["price"].to_s
-                    xml.Weight "" # TODO: we don't have in our order response
-                    xml.WeightUnits "" # TODO: we don't have in our order response
+                    # xml.Weight "" # TODO: we don't have in our order response
+                    # xml.WeightUnits "" # TODO: we don't have in our order response
 
                     # Product options/variants
                     if item["options"].present?
