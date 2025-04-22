@@ -5,6 +5,8 @@ Rails.application.routes.draw do
 
   post "webhook", to: "webhooks#create", as: :webhook
 
+  get "embed", to: "embeds#index", as: :embed
+
   namespace :admin do
     get "dashboard/index"
     resource :droplet, only: %i[ create update ]
