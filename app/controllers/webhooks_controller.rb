@@ -1,5 +1,6 @@
 class WebhooksController < ApplicationController
   skip_before_action :verify_authenticity_token
+  before_action :verify_event, unless: :company_droplet_created_event?
 
   def create
     case [ params[:resource], params[:event] ]
@@ -15,6 +16,15 @@ class WebhooksController < ApplicationController
   end
 
 private
+
+  def company_droplet_created_event?
+    params[:resource] == "company_droplet" && params[:event] == "created"
+  end
+
+  def verify_event
+    company = find_company
+    head :unauthorized unless params[:webhook_verification_token] == company.webhook_verification_token
+  end
 
   def handle_company_droplet_created
     company_data = params.require(:company_droplet).permit(
