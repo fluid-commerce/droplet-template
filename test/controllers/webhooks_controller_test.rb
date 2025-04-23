@@ -46,7 +46,7 @@ class WebhooksControllerTest < ActionDispatch::IntegrationTest
         company_droplet_uuid: @company.company_droplet_uuid,
         fluid_company_id: @company.fluid_company_id,
       },
-      webhook_verification_token: @company.webhook_verification_token
+      webhook_verification_token: @company.webhook_verification_token,
     }, as: :json
 
     assert_response :success
@@ -70,7 +70,7 @@ class WebhooksControllerTest < ActionDispatch::IntegrationTest
         company_droplet_uuid: @company.company_droplet_uuid,
         fluid_company_id: @company.fluid_company_id,
       },
-      webhook_verification_token: @company.webhook_verification_token
+      webhook_verification_token: @company.webhook_verification_token,
     }, as: :json
 
     assert_response :success
@@ -116,7 +116,7 @@ class WebhooksControllerTest < ActionDispatch::IntegrationTest
         company_droplet_uuid: @company.company_droplet_uuid,
         fluid_company_id: @company.fluid_company_id,
       },
-      webhook_verification_token: @company.webhook_verification_token
+      webhook_verification_token: @company.webhook_verification_token,
     }, as: :json
 
     assert_response :success
@@ -130,7 +130,7 @@ class WebhooksControllerTest < ActionDispatch::IntegrationTest
         company_droplet_uuid: @company.company_droplet_uuid,
         fluid_company_id: @company.fluid_company_id,
       },
-      webhook_verification_token: "invalid-token"
+      webhook_verification_token: "invalid-token",
     }, as: :json
 
     assert_response :unauthorized
