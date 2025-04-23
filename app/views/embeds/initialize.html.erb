@@ -1,18 +1,19 @@
 <div class="flex flex-col gap-2 justify-center items-center h-screen">
   <h1>Sovos Global Tax settings</h1>
-  <form class="max-w-sm mx-auto">
+  <%= form_with(url: embed_path, method: :patch, class: "max-w-sm mx-auto", authenticity_token: true) do |f| %>
+    <%= f.hidden_field :company_droplet_uuid, value: 'cdr_znmpvbr5x7ndkotlhpvnyt5b5qfzvxzf' %>
     <div class="mb-5">
-      <label htmlFor="username" class="block text-gray-700 text-sm font-bold mb-2">Username</label>
-      <input type="text" id="username" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" required />
+      <%= f.label :username, class: "block text-gray-700 text-sm font-bold mb-2" %>
+      <%= f.text_field :username, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline", required: true %>
     </div>
     <div class="mb-5">
-      <label htmlFor="password" class="block text-gray-700 text-sm font-bold mb-2">Password</label>
-      <input type="password" id="password" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" required />
+      <%= f.label :password, class: "block text-gray-700 text-sm font-bold mb-2" %>
+      <%= f.password_field :password, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline", required: true %>
     </div>
     <div class="mb-5">
-      <label htmlFor="hmac-key" class="block text-gray-700 text-sm font-bold mb-2">HMAC Key</label>
-      <input type="text" id="hmac-key" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" required />
+      <%= f.label :hmac_key, "HMAC Key", class: "block text-gray-700 text-sm font-bold mb-2" %>
+      <%= f.text_field :hmac_key, class: "shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline", required: true %>
     </div>
-    <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">Save</button>
-  </form>
+    <%= f.submit "Save", class: "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" %>
+  <% end %>
 </div>

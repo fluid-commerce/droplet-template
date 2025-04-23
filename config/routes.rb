@@ -6,6 +6,7 @@ Rails.application.routes.draw do
   post "webhook", to: "webhooks#create", as: :webhook
 
   get "embed", to: "embeds#index", as: :embed
+  patch "embed", to: "embeds#update"
 
   namespace :admin do
     get "dashboard/index"
