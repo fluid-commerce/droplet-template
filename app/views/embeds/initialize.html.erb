@@ -1,6 +1,6 @@
 <div class="flex flex-col gap-2 justify-center items-center h-screen">
   <h1>Sovos Global Tax settings</h1>
-  <%= form_with(url: embed_path, method: :patch, class: "max-w-sm mx-auto", authenticity_token: true) do |f| %>
+  <%= form_with(url: sovos_update_settings_path, method: :post, class: "max-w-sm mx-auto", authenticity_token: true) do |f| %>
     <%= f.hidden_field :company_droplet_uuid, value: 'cdr_znmpvbr5x7ndkotlhpvnyt5b5qfzvxzf' %>
     <div class="mb-5">
       <%= f.label :username, class: "block text-gray-700 text-sm font-bold mb-2" %>

@@ -6,7 +6,8 @@ Rails.application.routes.draw do
   post "webhook", to: "webhooks#create", as: :webhook
 
   get "embed", to: "embeds#index", as: :embed
-  patch "embed", to: "embeds#update"
+
+  post "sovos/update_settings", to: "sovos#update_settings", as: :sovos_update_settings
 
   namespace :admin do
     get "dashboard/index"
