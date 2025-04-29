@@ -14,7 +14,7 @@ class CompanyDropletInstalledJob < ApplicationJob
     raise
   end
 
-  private
+private
 
   def find_company(payload)
     uuid = payload.dig("company_droplet", "company_droplet_uuid")
@@ -22,4 +22,4 @@ class CompanyDropletInstalledJob < ApplicationJob
 
     Company.find_by(company_droplet_uuid: uuid) || Company.find_by(fluid_company_id: fluid_company_id)
   end
-end 
+end

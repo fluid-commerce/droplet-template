@@ -38,4 +38,4 @@ class CompanyDropletCreatedJob < ApplicationJob
     Rails.logger.error("[CompanyDropletCreatedJob] Error: #{e.class} - #{e.message}")
     raise
   end
-end 
+end

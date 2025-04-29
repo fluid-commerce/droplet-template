@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Register default webhook event handlers.
-# 
+#
 # This is inside a to_prepare block which runs after all application code
 # is loaded, making sure the constants are defined when this runs.
 # It also runs on every code reload in development, ensuring the handlers

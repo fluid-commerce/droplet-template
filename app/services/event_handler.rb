@@ -60,7 +60,7 @@ class EventHandler
       EVENT_HANDLERS[key] = handler_class
     end
 
-    private
+  private
 
     # Builds an internal lookup key for the given event_type and optional
     # version.
@@ -68,4 +68,4 @@ class EventHandler
       version.present? ? "#{version}.#{event_type}" : event_type.to_s
     end
   end
-end 
+end
