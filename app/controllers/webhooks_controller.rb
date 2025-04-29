@@ -3,13 +3,14 @@ class WebhooksController < ApplicationController
 
   def create
     event_type = "#{params[:resource]}.#{params[:event]}"
+    version = params[:version]
 
     # Pass the full, unfiltered params hash to the job so that each handler can
     # decide what it needs. The hash is duped so the job cannot mutate the
     # controller params.
     payload = params.to_unsafe_h.deep_dup
 
-    if EventHandler.route(event_type, payload)
+    if EventHandler.route(event_type, payload, version: version)
       # A 202 Accepted indicates that we have accepted the webhook and queued
       # the appropriate background job for processing.
       head :accepted
