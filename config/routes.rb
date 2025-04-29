@@ -8,6 +8,7 @@ Rails.application.routes.draw do
   get "embed", to: "embeds#index", as: :embed
 
   post "sovos/update_settings", to: "sovos#update_settings", as: :sovos_update_settings
+  post "sovos/calculate_tax", to: "sovos#calculate_tax", as: :sovos_calculate_tax
 
   namespace :admin do
     get "dashboard/index"

@@ -1,5 +1,5 @@
 class SovosController < ApplicationController
-  before_action :set_company, only: %i[update_settings]
+  before_action :set_company, only: %i[update_settings calculate_tax]
   skip_before_action :verify_authenticity_token
 
   def update_settings
@@ -22,11 +22,49 @@ class SovosController < ApplicationController
     end
   end
 
+  def calculate_tax
+    return bad_request_response unless valid_cart_params?
+
+    return not_found_response unless @company.present?
+
+    cart_token = cart_payload["cart_token"]
+    sovos_client = SovosClient.new(@company, cart_payload)
+    response = sovos_client.calculate_tax
+    update_fluid_cart(cart_token, response)
+    render json: { success: true, total_tax: response["txAmt"] }, status: :ok
+  rescue => e
+    render json: { success: false, error: e.message }, status: :internal_server_error
+  end
+
+
 private
+
+  def update_fluid_cart(cart_token, response)
+    fluid_cart = FluidCartService.new(cart_token, response)
+    fluid_cart.update_cart
+  end
+
+  def cart_payload
+    params.dig(:payload, :cart)
+  end
 
   def valid_params?
     required_params = %i[username password hmac_key company_droplet_uuid]
     required_params.all? { |param| params[param].present? }
+  end
+
+  def valid_cart_params?
+    cart_payload = params.dig(:payload, :cart)
+    return false if cart_payload.blank?
+
+    lines = cart_payload["lines"]
+    return false if lines.blank? || !lines.is_a?(Array)
+
+    lines.all? do |line|
+      line["amount"].present? &&
+      line["id"].present? &&
+      line["quantity"].present?
+    end
   end
 
   def sanitized_settings
