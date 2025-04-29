@@ -16,26 +16,23 @@ class WebhooksControllerTest < ActionDispatch::IntegrationTest
       service_company_id: "service-123",
     }
 
-    assert_difference("Company.count") do
+    assert_enqueued_jobs 1 do
       post webhook_url, params: {
         resource: "company_droplet",
         event: "created",
         company_droplet: company_data,
       }, as: :json
+      assert_response :accepted
     end
 
-    assert_response :created
+    perform_enqueued_jobs
 
-    response_json = JSON.parse(response.body)
-    assert_equal true, response_json["success"]
-    assert_equal "Company created", response_json["message"]
-
-    company = Company.last
+    company = Company.order(:created_at).last
     assert_equal "test-shop", company.fluid_shop
     assert_equal "Test Company", company.name
     assert_equal 123456, company.fluid_company_id
     assert_equal "abc-123-xyz", company.company_droplet_uuid
-    assert_equal true, company.active
+    assert company.active?
   end
 
   test "should handle company_droplet uninstalled event" do
@@ -48,11 +45,9 @@ class WebhooksControllerTest < ActionDispatch::IntegrationTest
       },
     }, as: :json
 
-    assert_response :success
+    assert_response :accepted
 
-    response_json = JSON.parse(response.body)
-    assert_equal true, response_json["success"]
-    assert_equal "Company droplet uninstalled", response_json["message"]
+    perform_enqueued_jobs
 
     @company.reload
     assert_not_nil @company.uninstalled_at
@@ -71,17 +66,15 @@ class WebhooksControllerTest < ActionDispatch::IntegrationTest
       },
     }, as: :json
 
-    assert_response :success
+    assert_response :accepted
 
-    response_json = JSON.parse(response.body)
-    assert_equal true, response_json["success"]
-    assert_equal "Company droplet installed", response_json["message"]
+    perform_enqueued_jobs
 
     @company.reload
     assert_nil @company.uninstalled_at
   end
 
-  test "should return 404 when company not found" do
+  test "should gracefully handle without 404 when company not found" do
     post webhook_url, params: {
       resource: "company_droplet",
       event: "uninstalled",
@@ -91,10 +84,12 @@ class WebhooksControllerTest < ActionDispatch::IntegrationTest
       },
     }, as: :json
 
-    assert_response :not_found
+    assert_response :accepted
 
-    response_json = JSON.parse(response.body)
-    assert_equal "Company not found", response_json["error"]
+    perform_enqueued_jobs
+
+    assert_nil Company.find_by(company_droplet_uuid: "non-existent-uuid")
+    assert_nil Company.find_by(fluid_company_id: 999999)
   end
 
   test "should handle unknown event types with no content" do
