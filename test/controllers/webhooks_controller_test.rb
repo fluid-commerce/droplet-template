@@ -13,14 +13,13 @@ class WebhooksControllerTest < ActionDispatch::IntegrationTest
       company_droplet_uuid: "abc-123-xyz",
       authentication_token: "secret-token-123",
       webhook_verification_token: "verify-token-456",
-      service_company_id: "service-123",
     }
 
     assert_enqueued_jobs 1 do
       post webhook_url, params: {
         resource: "company_droplet",
         event: "created",
-        company_droplet: company_data,
+        company: company_data,
       }, as: :json
       assert_response :accepted
     end
@@ -39,7 +38,7 @@ class WebhooksControllerTest < ActionDispatch::IntegrationTest
     post webhook_url, params: {
       resource: "company_droplet",
       event: "uninstalled",
-      company_droplet: {
+      company: {
         company_droplet_uuid: @company.company_droplet_uuid,
         fluid_company_id: @company.fluid_company_id,
       },
@@ -60,7 +59,7 @@ class WebhooksControllerTest < ActionDispatch::IntegrationTest
     post webhook_url, params: {
       resource: "company_droplet",
       event: "installed",
-      company_droplet: {
+      company: {
         company_droplet_uuid: @company.company_droplet_uuid,
         fluid_company_id: @company.fluid_company_id,
       },
@@ -78,7 +77,7 @@ class WebhooksControllerTest < ActionDispatch::IntegrationTest
     post webhook_url, params: {
       resource: "company_droplet",
       event: "uninstalled",
-      company_droplet: {
+      company: {
         company_droplet_uuid: "non-existent-uuid",
         fluid_company_id: 999999,
       },

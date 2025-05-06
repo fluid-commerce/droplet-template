@@ -42,9 +42,9 @@ class EventHandlerTest < ActiveSupport::TestCase
   teardown do
     # Restore default handlers after each test
     EventHandler::EVENT_HANDLERS.clear
-    EventHandler.register_handler("company_droplet.created", CompanyDropletCreatedJob)
-    EventHandler.register_handler("company_droplet.uninstalled", CompanyDropletUninstalledJob)
-    EventHandler.register_handler("company_droplet.installed", CompanyDropletInstalledJob)
+    EventHandler.register_handler("company_droplet.created", DropletInstalledJob)
+    EventHandler.register_handler("company_droplet.uninstalled", DropletUninstalledJob)
+    EventHandler.register_handler("company_droplet.installed", DropletInstalledJob)
   end
 
   test "registers and routes to a handler" do
@@ -165,11 +165,11 @@ class EventHandlerTest < ActiveSupport::TestCase
     }
 
     # Register the default handlers
-    EventHandler.register_handler("company_droplet.created", CompanyDropletCreatedJob)
+    EventHandler.register_handler("company_droplet.created", DropletInstalledJob)
 
-    assert_enqueued_with(job: CompanyDropletCreatedJob, args: [ test_payload ]) do
+    assert_enqueued_with(job: DropletInstalledJob, args: [ test_payload ]) do
       result = EventHandler.route("company_droplet.created", test_payload)
-      assert result, "Should route to CompanyDropletCreatedJob"
+      assert result, "Should route to DropletInstalledJob"
     end
   end
 

@@ -1,6 +1,6 @@
 class EventHandler
   # Stores the mapping of event type (optionally namespaced by version) to handler classes.
-  #   { "v1.company_droplet.created" => CompanyDropletCreatedJob, ... }
+  #   { "v1.company_droplet.created" => DropletInstalledJob, ... }
   # HashWithIndifferentAccess is used so callers can pass either String or Symbol keys.
   EVENT_HANDLERS = ActiveSupport::HashWithIndifferentAccess.new
 
