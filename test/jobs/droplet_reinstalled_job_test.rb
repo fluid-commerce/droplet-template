@@ -2,13 +2,13 @@ require "test_helper"
 
 describe DropletReinstalledJob do
   fixtures(:companies)
-  
+
   describe "#perform" do
     it "marks company as installed" do
       # Set up an uninstalled company
       company = companies(:acme)
       company.update(uninstalled_at: Time.current)
-      
+
       # Create payload with company identifier
       payload = {
         "company" => {
@@ -29,7 +29,7 @@ describe DropletReinstalledJob do
       # Set up an uninstalled company
       company = companies(:acme)
       company.update(uninstalled_at: Time.current)
-      
+
       # Create payload with only uuid
       payload = {
         "company" => {
@@ -46,7 +46,7 @@ describe DropletReinstalledJob do
       # Set up an uninstalled company
       company = companies(:acme)
       company.update(uninstalled_at: Time.current)
-      
+
       # Create payload with only fluid_company_id
       payload = {
         "company" => {
@@ -63,7 +63,7 @@ describe DropletReinstalledJob do
       # Set up an uninstalled company for comparison
       company = companies(:acme)
       company.update(uninstalled_at: Time.current)
-      
+
       # Create payload with non-existent identifiers
       payload = {
         "company" => {
@@ -86,7 +86,7 @@ describe DropletReinstalledJob do
       # Set up an uninstalled company for comparison
       company = companies(:acme)
       company.update(uninstalled_at: Time.current)
-      
+
       # Empty payload
       payload = {}
 

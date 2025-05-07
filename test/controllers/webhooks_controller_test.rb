@@ -3,7 +3,7 @@ require "test_helper"
 
 describe WebhooksController do
   fixtures(:companies)
-  
+
   describe "company_droplet events" do
     it "handles company_droplet created event" do
       company_data = {
@@ -20,7 +20,7 @@ describe WebhooksController do
         event: "created",
         company: company_data,
       }, as: :json
-      
+
       _(response.status).must_equal 202
 
       perform_enqueued_jobs

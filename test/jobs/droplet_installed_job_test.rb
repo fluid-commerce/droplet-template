@@ -16,7 +16,7 @@ describe DropletInstalledJob do
       payload = { "company" => company_data }
 
       # Test that the job creates a company
-      _( -> { DropletInstalledJob.perform_now(payload) }).must_change "Company.count", +1
+      _(-> { DropletInstalledJob.perform_now(payload) }).must_change "Company.count", +1
 
       # Find the created company
       company = Company.last
@@ -36,7 +36,7 @@ describe DropletInstalledJob do
       payload = {}
 
       # Job should run without creating a company or raising errors
-      _( -> { DropletInstalledJob.perform_now(payload) }).wont_change "Company.count"
+      _(-> { DropletInstalledJob.perform_now(payload) }).wont_change "Company.count"
     end
 
     it "handles invalid company data" do
@@ -49,7 +49,7 @@ describe DropletInstalledJob do
       }
 
       # Job should run without creating a company or raising errors
-      _( -> { DropletInstalledJob.perform_now(payload) }).wont_change "Company.count"
+      _(-> { DropletInstalledJob.perform_now(payload) }).wont_change "Company.count"
     end
   end
 end
