@@ -55,15 +55,15 @@ describe EventHandler do
       # Check that it was registered
       _(EventHandler::EVENT_HANDLERS["test.event"]).must_equal TestHandlerJob
     end
-    
+
     it "routes to a handler" do
       # Register the handler
       EventHandler.register_handler("test.event", TestHandlerJob)
-      
+
       # Test routing with payload
       payload = { "test" => "data" }
-      
-      assert_enqueued_with(job: TestHandlerJob, args: [payload]) do
+
+      assert_enqueued_with(job: TestHandlerJob, args: [ payload ]) do
         result = EventHandler.route("test.event", payload)
         _(result).must_equal true
       end
@@ -86,11 +86,11 @@ describe EventHandler do
       # Test that version-specific routing works
       test_payload = { "version_test" => true }
 
-      assert_enqueued_with(job: V1HandlerJob, args: [test_payload]) do
+      assert_enqueued_with(job: V1HandlerJob, args: [ test_payload ]) do
         EventHandler.route("api.event", test_payload, version: "v1")
       end
 
-      assert_enqueued_with(job: V2HandlerJob, args: [test_payload]) do
+      assert_enqueued_with(job: V2HandlerJob, args: [ test_payload ]) do
         EventHandler.route("api.event", test_payload, version: "v2")
       end
     end
@@ -102,7 +102,7 @@ describe EventHandler do
       # Should use unversioned handler when trying to route to non-existent v3
       test_payload = { "fallback" => true }
 
-      assert_enqueued_with(job: FallbackHandlerJob, args: [test_payload]) do
+      assert_enqueued_with(job: FallbackHandlerJob, args: [ test_payload ]) do
         result = EventHandler.route("fallback.event", test_payload, version: "v3")
         _(result).must_equal true
       end
@@ -115,7 +115,7 @@ describe EventHandler do
       # Test matching with fully qualified event name
       test_payload = { "data" => "test" }
 
-      assert_enqueued_with(job: VersionedEventHandler, args: [test_payload]) do
+      assert_enqueued_with(job: VersionedEventHandler, args: [ test_payload ]) do
         result = EventHandler.route("v2.data.update", test_payload)
         _(result).must_equal true
       end
@@ -155,7 +155,7 @@ describe EventHandler do
       arg2 = { "second" => "arg" }
       arg3 = "third_arg"
 
-      assert_enqueued_with(job: MultiArgHandlerJob, args: [arg1, arg2, arg3]) do
+      assert_enqueued_with(job: MultiArgHandlerJob, args: [ arg1, arg2, arg3 ]) do
         result = EventHandler.route("multi.arg", arg1, arg2, arg3)
         _(result).must_equal true
       end
@@ -179,7 +179,7 @@ describe EventHandler do
       # Register the default handlers
       EventHandler.register_handler("company_droplet.created", DropletInstalledJob)
 
-      assert_enqueued_with(job: DropletInstalledJob, args: [test_payload]) do
+      assert_enqueued_with(job: DropletInstalledJob, args: [ test_payload ]) do
         result = EventHandler.route("company_droplet.created", test_payload)
         _(result).must_equal true
       end
@@ -192,7 +192,7 @@ describe EventHandler do
       # Test routing to the custom handler
       test_payload = { "runtime" => "test" }
 
-      assert_enqueued_with(job: CustomRuntimeHandlerJob, args: [test_payload]) do
+      assert_enqueued_with(job: CustomRuntimeHandlerJob, args: [ test_payload ]) do
         result = EventHandler.route("custom.runtime", test_payload)
         _(result).must_equal true
       end
