@@ -1,6 +1,6 @@
 class WebhooksController < ApplicationController
   skip_before_action :verify_authenticity_token
-  before_action :authenticate_webhook_token, if: :droplet_installed_or_uninstalled_event?
+  before_action :authenticate_webhook_token, unless: :droplet_installed_for_first_time?
 
   def create
     event_type = "#{params[:resource]}.#{params[:event]}"
@@ -17,10 +17,10 @@ class WebhooksController < ApplicationController
     end
   end
 
-private
+  private
 
-  def droplet_installed_or_uninstalled_event?
-    params[:resource] == "company_droplet" && %w[installed uninstalled].include?(params[:event])
+  def droplet_installed_for_first_time?
+    params[:resource] == "company_droplet" && params[:event] == "created"
   end
 
   def authenticate_webhook_token
@@ -33,7 +33,11 @@ private
   end
 
   def find_company
-    Company.find_by(company_droplet_uuid: params.dig(:company_droplet, :company_droplet_uuid)) ||
-      Company.find_by(fluid_company_id: params.dig(:company_droplet, :fluid_company_id))
+    Company.find_by(company_droplet_uuid: company_params[:company_droplet_uuid]) ||
+      Company.find_by(fluid_company_id: company_params[:fluid_company_id])
+  end
+
+  def company_params
+    params.require(:company).permit(:company_droplet_uuid, :fluid_company_id, :webhook_verification_token, :authentication_token)
   end
 end

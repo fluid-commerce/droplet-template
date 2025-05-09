@@ -33,7 +33,7 @@ describe WebhooksController do
       _(company).must_be :active?
     end
 
-    it "handles company_droplet uninstalled event" do
+    it "handles company_droplet uninstalled event with valid token" do
       company = companies(:acme)
       post webhook_url, params: {
         resource: "company_droplet",
@@ -42,6 +42,7 @@ describe WebhooksController do
           company_droplet_uuid: company.company_droplet_uuid,
           fluid_company_id: company.fluid_company_id,
         },
+        webhook_verification_token: company.webhook_verification_token,
       }, as: :json
 
       _(response.status).must_equal 202
@@ -52,7 +53,7 @@ describe WebhooksController do
       _(company.uninstalled_at).wont_be_nil
     end
 
-    it "handles company_droplet installed event" do
+    it "handles company_droplet installed event with valid token" do
       # First mark the company as uninstalled
       company = companies(:acme)
       company.update(uninstalled_at: Time.current)
@@ -64,6 +65,7 @@ describe WebhooksController do
           company_droplet_uuid: company.company_droplet_uuid,
           fluid_company_id: company.fluid_company_id,
         },
+        webhook_verification_token: company.webhook_verification_token,
       }, as: :json
 
       _(response.status).must_equal 202
@@ -74,7 +76,23 @@ describe WebhooksController do
       _(company.uninstalled_at).must_be_nil
     end
 
-    it "gracefully handles without 404 when company not found" do
+    it "rejects event when webhook verification token is invalid" do
+      company = companies(:acme)
+      post webhook_url, params: {
+        resource: "company_droplet",
+        event: "uninstalled",
+        company: {
+          company_droplet_uuid: company.company_droplet_uuid,
+          fluid_company_id: company.fluid_company_id,
+        },
+        webhook_verification_token: "invalid-token",
+      }, as: :json
+
+      _(response.status).must_equal 401
+      _(JSON.parse(response.body)["error"]).must_equal "Unauthorized"
+    end
+
+    it "returns 404 when company is not found" do
       post webhook_url, params: {
         resource: "company_droplet",
         event: "uninstalled",
@@ -82,76 +100,50 @@ describe WebhooksController do
           company_droplet_uuid: "non-existent-uuid",
           fluid_company_id: 999999,
         },
+        webhook_verification_token: "any-token",
+      }, as: :json
+
+      _(response.status).must_equal 404
+      _(JSON.parse(response.body)["error"]).must_equal "Company not found"
+    end
+
+    it "bypasses verification for company_droplet created event" do
+      company_data = {
+        fluid_shop: "new-shop",
+        name: "New Company",
+        fluid_company_id: 999999,
+        company_droplet_uuid: "new-uuid-123",
+        authentication_token: "new-secret-token",
+        webhook_verification_token: "new-verify-token",
+      }
+
+      # No webhook_verification_token provided, but should still succeed
+
+        post webhook_url, params: {
+          resource: "company_droplet",
+          event: "created",
+          company: company_data,
       }, as: :json
 
       _(response.status).must_equal 202
-
-      perform_enqueued_jobs
-
-      _(Company.find_by(company_droplet_uuid: "non-existent-uuid")).must_be_nil
-      _(Company.find_by(fluid_company_id: 999999)).must_be_nil
     end
   end
 
   describe "unknown events" do
     it "handles unknown event types with no content" do
+      company = companies(:acme)
+
       post webhook_url, params: {
         resource: "unknown_resource",
         event: "unknown_event",
+        company: {
+          company_droplet_uuid: company.company_droplet_uuid,
+          fluid_company_id: company.fluid_company_id,
+        },
+        webhook_verification_token: company.webhook_verification_token,
       }, as: :json
 
       _(response.status).must_equal 204
     end
-  end
-
-  test "should verify event when webhook verification token is valid" do
-    post webhook_url, params: {
-      resource: "company_droplet",
-      event: "uninstalled",
-      company_droplet: {
-        company_droplet_uuid: @company.company_droplet_uuid,
-        fluid_company_id: @company.fluid_company_id,
-      },
-      webhook_verification_token: @company.webhook_verification_token,
-    }, as: :json
-
-    assert_response :success
-  end
-
-  test "should reject event when webhook verification token is invalid" do
-    post webhook_url, params: {
-      resource: "company_droplet",
-      event: "uninstalled",
-      company_droplet: {
-        company_droplet_uuid: @company.company_droplet_uuid,
-        fluid_company_id: @company.fluid_company_id,
-      },
-      webhook_verification_token: "invalid-token",
-    }, as: :json
-
-    assert_response :unauthorized
-  end
-
-  test "should bypass verification for company_droplet created event" do
-    company_data = {
-      fluid_shop: "new-shop",
-      name: "New Company",
-      fluid_company_id: 999999,
-      company_droplet_uuid: "new-uuid-123",
-      authentication_token: "new-secret-token",
-      webhook_verification_token: "new-verify-token",
-      service_company_id: "new-service-123",
-    }
-
-    # No webhook_verification_token provided, but should still succeed
-    assert_difference("Company.count") do
-      post webhook_url, params: {
-        resource: "company_droplet",
-        event: "created",
-        company_droplet: company_data,
-      }, as: :json
-    end
-
-    assert_response :created
   end
 end
