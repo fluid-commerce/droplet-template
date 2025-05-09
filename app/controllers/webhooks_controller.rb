@@ -17,7 +17,7 @@ class WebhooksController < ApplicationController
     end
   end
 
-  private
+private
 
   def droplet_installed_for_first_time?
     params[:resource] == "company_droplet" && params[:event] == "created"
@@ -38,6 +38,7 @@ class WebhooksController < ApplicationController
   end
 
   def company_params
-    params.require(:company).permit(:company_droplet_uuid, :fluid_company_id, :webhook_verification_token, :authentication_token)
+    params.require(:company).permit(:company_droplet_uuid, :fluid_company_id, :webhook_verification_token,
+:authentication_token)
   end
 end

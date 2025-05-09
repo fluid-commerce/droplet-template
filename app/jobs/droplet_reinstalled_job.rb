@@ -14,7 +14,7 @@ class DropletReinstalledJob < ApplicationJob
     raise
   end
 
-  private
+private
 
   def find_company(payload)
     uuid = payload.dig("company", "company_droplet_uuid")

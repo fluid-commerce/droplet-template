@@ -119,11 +119,11 @@ describe WebhooksController do
 
       # No webhook_verification_token provided, but should still succeed
 
-        post webhook_url, params: {
-          resource: "company_droplet",
-          event: "created",
-          company: company_data,
-      }, as: :json
+      post webhook_url, params: {
+        resource: "company_droplet",
+        event: "created",
+        company: company_data,
+    }, as: :json
 
       _(response.status).must_equal 202
     end
