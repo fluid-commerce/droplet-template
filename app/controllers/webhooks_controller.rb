@@ -27,7 +27,7 @@ class WebhooksController < ApplicationController
     company = find_company
     if company.blank?
       render json: { error: "Company not found" }, status: :not_found
-    elsif params[:webhook_verification_token] != company.webhook_verification_token
+    elsif company_params[:webhook_verification_token] != company.webhook_verification_token
       render json: { error: "Unauthorized" }, status: :unauthorized
     end
   end

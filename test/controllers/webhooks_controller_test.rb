@@ -41,8 +41,8 @@ describe WebhooksController do
         company: {
           company_droplet_uuid: company.company_droplet_uuid,
           fluid_company_id: company.fluid_company_id,
+          webhook_verification_token: company.webhook_verification_token,
         },
-        webhook_verification_token: company.webhook_verification_token,
       }, as: :json
 
       _(response.status).must_equal 202
@@ -64,8 +64,8 @@ describe WebhooksController do
         company: {
           company_droplet_uuid: company.company_droplet_uuid,
           fluid_company_id: company.fluid_company_id,
+          webhook_verification_token: company.webhook_verification_token,
         },
-        webhook_verification_token: company.webhook_verification_token,
       }, as: :json
 
       _(response.status).must_equal 202
@@ -84,8 +84,8 @@ describe WebhooksController do
         company: {
           company_droplet_uuid: company.company_droplet_uuid,
           fluid_company_id: company.fluid_company_id,
+          webhook_verification_token: "invalid-token",
         },
-        webhook_verification_token: "invalid-token",
       }, as: :json
 
       _(response.status).must_equal 401
@@ -99,8 +99,8 @@ describe WebhooksController do
         company: {
           company_droplet_uuid: "non-existent-uuid",
           fluid_company_id: 999999,
+          webhook_verification_token: "any-token",
         },
-        webhook_verification_token: "any-token",
       }, as: :json
 
       _(response.status).must_equal 404
@@ -139,8 +139,8 @@ describe WebhooksController do
         company: {
           company_droplet_uuid: company.company_droplet_uuid,
           fluid_company_id: company.fluid_company_id,
+          webhook_verification_token: company.webhook_verification_token,
         },
-        webhook_verification_token: company.webhook_verification_token,
       }, as: :json
 
       _(response.status).must_equal 204
