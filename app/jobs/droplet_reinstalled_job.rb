@@ -1,8 +1,7 @@
 class DropletReinstalledJob < WebhookEventJob
-
   # Expects event_type, service_id, payload
   def process_webhook
-    validate_payload_keys('company')
+    validate_payload_keys("company")
 
     if @company.present?
       @company.update(uninstalled_at: nil)

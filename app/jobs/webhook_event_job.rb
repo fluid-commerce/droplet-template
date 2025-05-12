@@ -27,13 +27,13 @@ class WebhookEventJob < ApplicationJob
     raise NotImplementedError, "#{self.class.name} must implement #process_webhook"
   end
 
-  protected 
+protected
 
   def event_type
     EventHandler::EVENT_HANDLERS.key(self.class)
   end
 
-  private
+private
 
   def validate_payload_keys(*required_keys)
     missing_keys = required_keys - @payload.keys
@@ -48,4 +48,4 @@ class WebhookEventJob < ApplicationJob
 
     Company.find_by(company_droplet_uuid: uuid) || Company.find_by(fluid_company_id: fluid_company_id)
   end
-end 
+end
