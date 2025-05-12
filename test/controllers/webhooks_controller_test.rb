@@ -121,7 +121,6 @@ describe WebhooksController do
       _(JSON.parse(response.body)["error"]).must_equal "Company not found"
     end
 
-
     it "relies on company payload for authentication if auth token is not provided" do
       company = companies(:acme)
       post webhook_url, params: {
@@ -141,7 +140,6 @@ describe WebhooksController do
       company.reload
       _(company.uninstalled_at).wont_be_nil
     end
-
 
     it "bypasses verification for company_droplet created event" do
       company_data = {
