@@ -1,17 +1,22 @@
 class WebhookEventJob < ApplicationJob
   queue_as :webhook_events
 
-  # Retry with exponential backoff
-  retry_on StandardError, wait: :exponentially_longer, attempts: 5
+  # Retry with exponential backoff (2^n seconds) up to 5 attempts.
+  retry_on StandardError, attempts: 5, wait: ->(executions) { (2**executions).seconds }
 
   # Ensure idempotency for deserialization errors
   discard_on ActiveJob::DeserializationError
 
-  def perform(payload)
-    @event_type = event_type
-    @company = find_company
-    @payload = payload
+  class << self
+    def event_type
+      EventHandler::EVENT_HANDLERS.key(self)
+    end  
+  end
 
+  def perform(payload)
+    @payload = payload
+    @event_type = self.class.event_type
+    @company = find_company
     ActiveRecord::Base.transaction do
       process_webhook
     end
@@ -27,17 +32,13 @@ class WebhookEventJob < ApplicationJob
     raise NotImplementedError, "#{self.class.name} must implement #process_webhook"
   end
 
-protected
-
-  def event_type
-    EventHandler::EVENT_HANDLERS.key(self.class)
-  end
-
-private
+  private
 
   def validate_payload_keys(*required_keys)
     missing_keys = required_keys - @payload.keys
     if missing_keys.any?
+      binding.pry
+      Rails.logger.error("Missing required payload keys: #{missing_keys.join(', ')}")
       raise ArgumentError, "Missing required payload keys: #{missing_keys.join(', ')}"
     end
   end
