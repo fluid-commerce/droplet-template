@@ -36,7 +36,7 @@ class WebhookEventJob < ApplicationJob
   end
 
   # Protected accessors for subclasses
-  protected
+protected
 
   # Get the payload from the webhook
   def get_payload
@@ -53,7 +53,7 @@ class WebhookEventJob < ApplicationJob
     @event_type
   end
 
-  private
+private
 
   def validate_payload_keys(*required_keys)
     missing_keys = required_keys - @payload.keys
