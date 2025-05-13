@@ -37,7 +37,6 @@ class WebhookEventJob < ApplicationJob
   def validate_payload_keys(*required_keys)
     missing_keys = required_keys - @payload.keys
     if missing_keys.any?
-      binding.pry
       Rails.logger.error("Missing required payload keys: #{missing_keys.join(', ')}")
       raise ArgumentError, "Missing required payload keys: #{missing_keys.join(', ')}"
     end
