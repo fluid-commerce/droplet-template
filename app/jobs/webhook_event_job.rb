@@ -10,7 +10,7 @@ class WebhookEventJob < ApplicationJob
   class << self
     def event_type
       EventHandler::EVENT_HANDLERS.key(self)
-    end  
+    end
   end
 
   def perform(payload)
@@ -32,7 +32,7 @@ class WebhookEventJob < ApplicationJob
     raise NotImplementedError, "#{self.class.name} must implement #process_webhook"
   end
 
-  private
+private
 
   def validate_payload_keys(*required_keys)
     missing_keys = required_keys - @payload.keys

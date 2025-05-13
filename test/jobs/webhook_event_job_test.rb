@@ -50,8 +50,8 @@ describe WebhookEventJob do
       payload = {
         "company" => {
           "company_droplet_uuid" => company.company_droplet_uuid,
-          "fluid_company_id" => company.fluid_company_id
-        }
+          "fluid_company_id" => company.fluid_company_id,
+        },
       }
 
       # Run the job
@@ -93,7 +93,7 @@ describe WebhookEventJob do
       company = companies(:acme)
       job = TestWebhookJob.new
       job.instance_variable_set(:@payload, {
-        "company" => { "company_droplet_uuid" => company.company_droplet_uuid }
+        "company" => { "company_droplet_uuid" => company.company_droplet_uuid },
       })
 
       found_company = job.send(:find_company)
@@ -104,7 +104,7 @@ describe WebhookEventJob do
       company = companies(:acme)
       job = TestWebhookJob.new
       job.instance_variable_set(:@payload, {
-        "company" => { "fluid_company_id" => company.fluid_company_id }
+        "company" => { "fluid_company_id" => company.fluid_company_id },
       })
 
       found_company = job.send(:find_company)
@@ -114,10 +114,10 @@ describe WebhookEventJob do
     it "returns nil when company not found" do
       job = TestWebhookJob.new
       job.instance_variable_set(:@payload, {
-        "company" => { 
+        "company" => {
           "company_droplet_uuid" => "non-existent-uuid",
-          "fluid_company_id" => 999999
-        }
+          "fluid_company_id" => 999999,
+        },
       })
 
       found_company = job.send(:find_company)
@@ -132,4 +132,4 @@ describe WebhookEventJob do
       _(found_company).must_be_nil
     end
   end
-end 
+end
