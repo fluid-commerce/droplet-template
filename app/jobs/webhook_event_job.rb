@@ -21,9 +21,9 @@ class WebhookEventJob < ApplicationJob
       process_webhook
     end
 
-    Rails.logger.info("Successfully processed #{self.class.name} for company #{@company.id}, event: #{event_type}")
+    Rails.logger.info("Successfully processed #{self.class.name} for company #{@company&.id}, event: #{@event_type}")
   rescue StandardError => e
-    Rails.logger.error("Error processing #{self.class.name} for company #{@company.id}, event: #{event_type}: #{e.message}")
+    Rails.logger.error("Error processing #{self.class.name} for company #{@company&.id}, event: #{@event_type}: #{e.message}")
     raise e
   end
 
