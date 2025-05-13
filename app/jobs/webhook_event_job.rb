@@ -35,7 +35,25 @@ class WebhookEventJob < ApplicationJob
     raise NotImplementedError, "#{self.class.name} must implement #process_webhook"
   end
 
-private
+  # Protected accessors for subclasses
+  protected
+
+  # Get the payload from the webhook
+  def get_payload
+    @payload
+  end
+
+  # Get the company associated with this webhook event
+  def get_company
+    @company
+  end
+
+  # Get the event type for this webhook
+  def get_event_type
+    @event_type
+  end
+
+  private
 
   def validate_payload_keys(*required_keys)
     missing_keys = required_keys - @payload.keys

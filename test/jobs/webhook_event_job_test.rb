@@ -70,6 +70,31 @@ describe WebhookEventJob do
     end
   end
 
+  describe "accessor methods" do
+    it "provides access to payload data" do
+      job = TestWebhookJob.new
+      test_payload = { "test" => "data" }
+      job.instance_variable_set(:@payload, test_payload)
+
+      _(job.send(:get_payload)).must_equal test_payload
+    end
+
+    it "provides access to company data" do
+      job = TestWebhookJob.new
+      company = companies(:acme)
+      job.instance_variable_set(:@company, company)
+
+      _(job.send(:get_company)).must_equal company
+    end
+
+    it "provides access to event_type" do
+      job = TestWebhookJob.new
+      job.instance_variable_set(:@event_type, "test.event")
+
+      _(job.send(:get_event_type)).must_equal "test.event"
+    end
+  end
+
   describe "#validate_payload_keys" do
     it "raises ArgumentError when required keys are missing" do
       job = TestWebhookJob.new

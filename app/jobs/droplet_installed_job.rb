@@ -14,7 +14,7 @@ class DropletInstalledJob < WebhookEventJob
   def process_webhook
     # Validate required keys in payload
     validate_payload_keys("company")
-    company_attributes = @payload.fetch("company", {})
+    company_attributes = get_payload.fetch("company", {})
 
     company = Company.new(company_attributes.slice(
       "fluid_shop",
