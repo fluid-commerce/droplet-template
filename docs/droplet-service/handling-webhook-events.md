@@ -7,7 +7,7 @@ nav_order: 7
 
 ## Handling Webhook Events
 
-When Fluid needs to notify your Droplet Service about platform changes, it sends webhook events. Each webhook event contains:
+When Fluid needs to notify your Droplet Service it sends webhook events. Each webhook event contains:
 
 1. Two headers for security:
    - `X-Fluid-Shop`: Identifies the company (shop) that owns the resource for the event
