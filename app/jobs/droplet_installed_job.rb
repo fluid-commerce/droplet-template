@@ -20,11 +20,11 @@ class DropletInstalledJob < WebhookEventJob
       "fluid_shop",
       "name",
       "fluid_company_id",
-      "company_droplet_uuid",
       "authentication_token",
       "webhook_verification_token",
+      "droplet_installation_uuid"
     ))
-
+    company.company_droplet_uuid = company_attributes.fetch("droplet_uuid")
     company.active = true
 
     unless company.save

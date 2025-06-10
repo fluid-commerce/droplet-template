@@ -21,6 +21,7 @@ gem "solid_cache"
 gem "solid_queue"
 gem "thruster", require: false
 gem "vite_rails", "~> 3.0", ">= 3.0.19"
+gem "mission_control-jobs"
 
 group :development, :test do
   gem "brakeman", require: false
@@ -31,6 +32,7 @@ group :development, :test do
   gem "rubocop-performance", require: false
   gem "rubocop-rails", require: false
   gem "rubocop-rails-omakase", require: false
+  gem "httplog"
 end
 
 group :development do
@@ -41,3 +43,6 @@ group :test do
   gem "capybara"
   gem "selenium-webdriver"
 end
+
+gem "dotenv", "~> 3.1"
+gem "jwt", "~> 2.10"

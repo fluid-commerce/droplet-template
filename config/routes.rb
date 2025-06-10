@@ -12,5 +12,9 @@ Rails.application.routes.draw do
     resources :users
   end
 
+  get "embed_ui" => "embed#index", as: :embed_ui
+
   get "up" => "rails/health#show", as: :rails_health_check
+
+  mount MissionControl::Jobs::Engine, at: "/jobs"
 end
