@@ -16,5 +16,7 @@ Rails.application.routes.draw do
 
   get "up" => "rails/health#show", as: :rails_health_check
 
+  post "get_redirect_url", to: "checkout_callback#get_redirect_url", as: :get_redirect_url
+  post "checkout_callback", to: "checkout_callback#checkout_callback", as: :checkout_callback
   mount MissionControl::Jobs::Engine, at: "/jobs"
 end
