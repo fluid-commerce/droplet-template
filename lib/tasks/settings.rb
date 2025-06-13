@@ -8,6 +8,7 @@ module Tasks
         create_marketplace_page_setting
         create_details_page_setting
         create_service_operational_countries_setting
+        create_categories_setting
       end
 
 
@@ -162,6 +163,26 @@ module Tasks
           }
           setting.values = {
             countries: [],
+          }
+        end
+      end
+
+      def create_categories_setting
+        Setting.find_or_create_by!(name: "categories") do |setting|
+          setting.description = "Categories for the Droplet"
+          setting.schema = {
+            type: "object",
+            properties: {
+              categories: {
+                type: "array",
+                items: { type: "string" },
+              },
+            },
+          }
+          setting.values = {
+            categories: [
+              "payments",
+            ],
           }
         end
       end
