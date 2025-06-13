@@ -20,7 +20,7 @@ class UPaymentsUserApiClient
   end
 
   def check_user_exists(email:, external_id:)
-    payload = { email:, external_id: "R#{external_id}" }
+    payload = { email:, external_id: "#{external_id}" }
 
     response = self.class.post(
       "/api/admin/customer",
