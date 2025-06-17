@@ -18,9 +18,8 @@ Rails.application.configure do
 
   # Use Solid Queue in Development.
   config.active_job.queue_adapter = :solid_queue
-  config.solid_queue.connects_to = { database: { writing: :queue } }
+  # config.solid_queue.connects_to = { database: { writing: :queue } }
   config.solid_queue.logger = ActiveSupport::Logger.new(STDOUT)
-  config.mission_control.jobs.http_basic_auth_enabled = false
 
   # Enable server timing.
   config.server_timing = true
