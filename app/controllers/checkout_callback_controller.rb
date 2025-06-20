@@ -62,8 +62,8 @@ class CheckoutCallbackController < ApplicationController
       # Call the fluid checkout api to create the order
       checkout_response = fluid_client.post("/api/carts/#{cart_token}/checkout?payment_uuid=#{payment_uuid}")
 
-      redirect_url = checkout_response["order"]["redirect_url"]
-      redirect_to redirect_url
+      order_confirmation_url = checkout_response["order"]["order_confirmation_url"]
+      redirect_to order_confirmation_url
     else
       fluid_checkout_url = "#{ENV['FLUID_HOST_URL']}/checkouts/#{cart_token}"
       redirect_to fluid_checkout_url
