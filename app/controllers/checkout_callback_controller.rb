@@ -17,7 +17,7 @@ class CheckoutCallbackController < ApplicationController
       consumer_external_id = by_design_consumer["RepDID"].to_s
 
       # Check if customer already exists in Fluid
-      fluid_customer = fluid_client.get("api/customers?search_query=#{customer_payload.dig(:email)}&page=1&per_page=1")
+      fluid_customer = fluid_client.get("/api/customers?search_query=#{customer_payload.dig(:email)}&page=1&per_page=1")
       if fluid_customer["customers"].blank?
         # Create customer in Fluid
         fluid_client.post("/api/customers", body: customer_payload.merge(external_id: consumer_external_id))
