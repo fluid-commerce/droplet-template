@@ -27,27 +27,27 @@ class ByDesign
     end
   end
 
-  private
+private
   def headers
-    { 'Authorization': authorization, 'Content-Type': "application/json", 'Accept': "application/json" }
+    { Authorization: authorization, "Content-Type": "application/json", Accept: "application/json" }
   end
 
   def authorization
-    "Basic #{Base64.strict_encode64("#{ENV["BY_DESIGN_INTEGRATION_USERNAME"]}:#{ENV["BY_DESIGN_INTEGRATION_PASSWORD"]}").strip}"
+    "Basic #{Base64.strict_encode64("#{ENV["BY_DESIGN_INTEGRATION_USERNAME"]}:#{ENV["BY_DESIGN_INTEGRATION_PASSWORD"]}").strip}" # rubocop:disable Layout/LineLength
   end
 
   def generate_consumer_payload
     {
       SponsorRepDID: sponsor_rep_id,
-      FirstName: cart[:ship_to][:first_name],
-      LastName: cart[:ship_to][:last_name],
-      Email: cart[:email],
-      ShipStreet1: cart[:ship_to][:address1],
-      ShipStreet2: cart[:ship_to][:address2],
-      ShipCity: cart[:ship_to][:city],
-      ShipState: cart[:ship_to][:state],
-      ShipPostalCode: cart[:ship_to][:postal_code],
-      ShipCountry: cart[:ship_to][:country_code],
+      FirstName: cart.dig(:ship_to, :first_name),
+      LastName: cart.dig(:ship_to, :last_name),
+      Email: cart.dig(:email),
+      ShipStreet1: cart.dig(:ship_to, :address1),
+      ShipStreet2: cart.dig(:ship_to, :address2),
+      ShipCity: cart.dig(:ship_to, :city),
+      ShipState: cart.dig(:ship_to, :state),
+      ShipPostalCode: cart.dig(:ship_to, :postal_code),
+      ShipCountry: cart.dig(:ship_to, :country_code),
     }
   end
 end

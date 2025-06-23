@@ -16,8 +16,12 @@ class CheckoutCallbackController < ApplicationController
       )
       consumer_external_id = by_design_consumer["RepDID"].to_s
 
-      # Create customer in Fluid
-      fluid_client.post("/api/customers", body: customer_payload.merge(external_id: consumer_external_id))
+      # Check if customer already exists in Fluid
+      fluid_customer = fluid_client.get("api/customers?search_query=#{customer_payload.dig(:email)}&page=1&per_page=1")
+      if fluid_customer["customers"].blank?
+        # Create customer in Fluid
+        fluid_client.post("/api/customers", body: customer_payload.merge(external_id: consumer_external_id))
+      end
 
       # Create consumer in UPayments
       user_payload = UPaymentsConsumerPayloadGenerator.generate_consumer_payload(
@@ -65,7 +69,7 @@ class CheckoutCallbackController < ApplicationController
       order_confirmation_url = checkout_response["order"]["order_confirmation_url"]
       redirect_to order_confirmation_url, allow_other_host: true
     else
-      fluid_checkout_url = "#{ENV['FLUID_HOST_URL']}/checkouts/#{cart_token}"
+      fluid_checkout_url = "#{ENV['CHECKOUT_HOST_URL']}/checkouts/#{cart_token}"
       redirect_to fluid_checkout_url, allow_other_host: true
     end
   end
@@ -130,24 +134,24 @@ private
 
   def customer_payload
     {
-      first_name: cart_payload[:ship_to][:first_name],
-      last_name: cart_payload[:ship_to][:last_name],
-      email: cart_payload[:email],
+      first_name: cart_payload.dig(:ship_to, :first_name),
+      last_name: cart_payload.dig(:ship_to, :last_name),
+      email: cart_payload.dig(:email),
       notes: "Created by NewULife Payment Redirect Droplet",
       default_address_attributes: {
-        address1: cart_payload[:ship_to][:address1],
-        address2: cart_payload[:ship_to][:address2],
-        city: cart_payload[:ship_to][:city],
-        state: cart_payload[:ship_to][:state],
-        postal_code: cart_payload[:ship_to][:postal_code],
-        country_code: cart_payload[:ship_to][:country_code],
-        default: true
+        address1: cart_payload.dig(:ship_to, :address1),
+        address2: cart_payload.dig(:ship_to, :address2),
+        city: cart_payload.dig(:ship_to, :city),
+        state: cart_payload.dig(:ship_to, :state),
+        postal_code: cart_payload.dig(:ship_to, :postal_code),
+        country_code: cart_payload.dig(:ship_to, :country_code),
+        default: true,
       },
       customer_notes_attributes: [
         {
-          note: "Created by NewULife Payment Redirect Droplet"
-        }
-      ]
+          note: "Created by NewULife Payment Redirect Droplet",
+        },
+      ],
     }
   end
 end
