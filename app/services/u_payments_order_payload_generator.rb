@@ -13,7 +13,7 @@ class UPaymentsOrderPayloadGenerator
 
   def generate_order_payload
     {
-      invoiceNumber: cart[:cart_token],
+      invoiceNumber: Time.now.to_i.to_s,
       totalAmount: format("%.2f", cart[:amount_total]),
       salesTax: format("%.2f", cart[:tax_total]),
       currency: cart[:currency_code],
