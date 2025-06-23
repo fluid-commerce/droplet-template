@@ -78,7 +78,7 @@ private
 
   def external_id
     if callback_params[:customer].present? && callback_params[:customer][:external_id].present?
-      "C#{callback_params[:customer][:external_id]}" # TODO: not sure whether we need to add C prefix
+      "R#{callback_params[:customer][:external_id]}" # TODO: not sure whether we need to add R prefix
     elsif callback_params[:user_company].present? && callback_params[:user_company][:external_id].present?
       "R#{callback_params[:user_company][:external_id]}"
     end
