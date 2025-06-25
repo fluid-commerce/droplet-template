@@ -3,17 +3,23 @@ class CheckoutCallbackController < ApplicationController
 
   def get_redirect_url
     consumer_external_id = external_id
-    user = UPaymentsUserApiClient.check_user_exists(
+    user_check_response = UPaymentsUserApiClient.check_user_exists(
       email: callback_params[:cart][:email],
       external_id: consumer_external_id
     )
 
-    if user["data"].blank?
+    user = user_check_response
+    if user_check_response.dig("status")&.zero?
       # Create consumer in ByDesign
       by_design_consumer = ByDesign.create_consumer(
         cart: cart_payload,
         sponsor_rep_id: callback_params[:attributable_rep_id]
       )
+
+      unless by_design_consumer.dig("Result", "IsSuccessful")
+        error_message = by_design_consumer.dig("Result", "Message")
+        return render json: { redirect_url: nil, error_message: }
+      end
       consumer_external_id = by_design_consumer["RepDID"].to_s
 
       # Check if customer already exists in Fluid
@@ -28,7 +34,12 @@ class CheckoutCallbackController < ApplicationController
         cart: cart_payload,
         external_id: consumer_external_id
       )
-      user = UPaymentsUserApiClient.onboard_consumer(payload: user_payload)
+      user_onboard_response = UPaymentsUserApiClient.onboard_consumer(payload: user_payload)
+      if user_onboard_response.dig("status")&.zero?
+        error_message = user_onboard_response.dig("error", "message")
+        return render json: { redirect_url: nil, error_message: error_message }
+      end
+      user = user_onboard_response
     end
 
     order_payload = UPaymentsOrderPayloadGenerator.generate_order_payload(
@@ -37,14 +48,17 @@ class CheckoutCallbackController < ApplicationController
       payment_account_id: callback_params[:payment_account_id]
     )
 
-    redirect_url = UPaymentsCheckoutApiClient.create_order(payload: order_payload)
+    redirect_url_response = UPaymentsCheckoutApiClient.create_order(payload: order_payload)
+    if redirect_url_response.dig("status")&.zero?
+      error_message = redirect_url_response.dig("error", "message")
+      return render json: { redirect_url: nil, error_message: error_message }
+    end
 
-    # TODO: need to handle error when `data` is not present
     uuid = user.dig("data", "uuid")
-    base_redirect_url = redirect_url.dig("data", "redirectUrl")
+    base_redirect_url = redirect_url_response.dig("data", "redirectUrl")
     final_redirect_url = "#{base_redirect_url}&uuid=#{uuid}"
 
-    render json: { redirect_url: final_redirect_url }
+    render json: { redirect_url: final_redirect_url, error_message: nil }
   end
 
   def success

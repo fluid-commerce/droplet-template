@@ -23,7 +23,7 @@ class ByDesign
     if response.code == 200
       JSON.parse(response.body)
     else
-      { Result: { IsSuccessful: false, Message: response.body } }
+      { "Result" => { "IsSuccessful" => false, "Message" => response.body } }
     end
   end
 
