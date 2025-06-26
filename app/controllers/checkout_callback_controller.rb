@@ -20,7 +20,7 @@ class CheckoutCallbackController < ApplicationController
         error_message = by_design_consumer.dig("Result", "Message")
         return render json: { redirect_url: nil, error_message: }
       end
-      consumer_external_id = "R#{by_design_consumer["RepDID"].to_s}"
+      consumer_external_id = "R#{by_design_consumer["RepDID"]}"
 
       # Check if customer already exists in Fluid
       fluid_customer = fluid_client.get("/api/customers?search_query=#{customer_payload.dig(:email)}&page=1&per_page=1")
