@@ -1,6 +1,45 @@
-## README
+## NewULife (UPayments) Droplet
 
-Droplets are integrations between third-party services and Fluid. This is a repository intended to be used as an example for creating Droplets.
+This is the Droplet repo for NewULife (UPayments/UWallet)
+
+### Before installing droplet
+
+Right now in fluid, when droplet is create, the necessary webhooks for the company is not created.
+So need to create these 2 webhooks first, each for installed and uninstalled event.
+
+```
+curl -i \
+  -X POST http://lvh.me:3000/api/company/webhooks \
+  -H 'Authorization: Bearer C-m5Ednh73qsdiXDgYhb6dcGmp' \
+  -H 'Content-Type: application/json' \
+  -d '{
+        "webhook": {
+          "resource": "droplet",
+          "event": "installed",
+          "url": "http://lvh.me:3300/webhook",
+          "active": true,
+          "http_method": "post"
+        }
+      }'
+```
+For, uninstalled:
+
+```
+curl -i \
+  -X POST http://lvh.me:3000/api/company/webhooks \
+  -H 'Authorization: Bearer C-m5Ednh73qsdiXDgYhb6dcGmp' \
+  -H 'Content-Type: application/json' \
+  -d '{
+        "webhook": {
+          "resource": "droplet",
+          "event": "uninstalled",
+          "url": "http://lvh.me:3300/webhook",
+          "active": true,
+          "http_method": "post"
+        }
+      }'
+```
+
 
 Documentation can be found in the [project's GitHub page](https://fluid-commerce.github.io/droplet-template/)
 

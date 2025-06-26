@@ -33,6 +33,7 @@ module Fluid
               "details_page" => Setting.details_page.values,
               "service_operational_countries" => Setting.service_operational_countries.values["countries"],
             },
+            "categories" => Setting.categories.values["categories"],
           ),
         }
       end

@@ -7,7 +7,8 @@
 # It also runs on every code reload in development, ensuring the handlers
 # are always registered.
 Rails.application.config.to_prepare do
-  EventHandler.register_handler("company_droplet.created", DropletInstalledJob)
-  EventHandler.register_handler("company_droplet.uninstalled", DropletUninstalledJob)
-  EventHandler.register_handler("company_droplet.installed", DropletReinstalledJob)
+  # TODO: not sure this event `company_droplet.created` is still in Fluid
+  # EventHandler.register_handler("company_droplet.created", DropletInstalledJob)
+  EventHandler.register_handler("droplet.uninstalled", DropletUninstalledJob)
+  EventHandler.register_handler("droplet.installed", DropletInstalledJob)
 end

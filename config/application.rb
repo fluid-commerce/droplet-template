@@ -6,7 +6,7 @@ require "rails/all"
 # you've limited to :test, :development, or :production.
 Bundler.require(*Rails.groups)
 
-module DropletTemplate
+module NewulifePaymentDroplet
   class Application < Rails::Application
     # Initialize configuration defaults for originally generated Rails version.
     config.load_defaults 8.0
@@ -25,5 +25,8 @@ module DropletTemplate
     config.action_view.field_error_proc = Proc.new { |html_tag, instance|
       "<span class='text-orange-600'>#{html_tag}</span>".html_safe
     }
+
+    config.mission_control.jobs.base_controller_class = "AdminController"
+    config.mission_control.jobs.http_basic_auth_enabled = false
   end
 end
