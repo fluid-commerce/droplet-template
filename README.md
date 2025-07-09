@@ -22,7 +22,7 @@ Documentation can be found in the [project's GitHub page](https://fluid-commerce
 Just the rails server (port 3000)<br>
 `bin/rails server`
 
-Running everything (port 3200)<br>
+Running everything (port 3005)<br>
 `bin/dev`
 
 Running it as a docker service (port 3600)<br>
