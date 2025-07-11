@@ -9,7 +9,7 @@ describe DropletInstalledJob do
         "fluid_company_id" => 12345,
         "droplet_uuid" => "test-uuid-123",
         "authentication_token" => "unique-test-auth-token",
-        "webhook_verification_token" => "test-verify-token"
+        "webhook_verification_token" => "test-verify-token",
       }
 
       payload = { "company" => company_data }
@@ -46,7 +46,7 @@ describe DropletInstalledJob do
         "fluid_company_id" => 12345,
         "droplet_uuid" => "new-uuid-123",
         "authentication_token" => "unique-new-auth-token",
-        "webhook_verification_token" => "new-verify-token"
+        "webhook_verification_token" => "new-verify-token",
       }
 
       payload = { "company" => company_data }
