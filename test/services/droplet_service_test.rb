@@ -13,32 +13,41 @@ class DropletServiceTest < ActiveSupport::TestCase
       "uuid" => "test-uuid",
       "name" => "Test Droplet",
       "active" => true,
-      "embed_url" => "https://example.com/embed"
+      "embed_url" => "https://example.com/embed",
     }
-    
+
     webhook_data = {
       "resource" => "droplet",
       "url" => "http://localhost:3200/webhook",
       "active" => true,
       "auth_token" => "secret_token",
       "event" => "installed",
-      "http_method" => "post"
+      "http_method" => "post",
     }
-    
+
     droplet_response = { "droplet" => droplet_data }
     webhook_response = { "webhook" => webhook_data }
-    
+
     droplets_mock = Minitest::Mock.new
     droplets_mock.expect :create, droplet_response
-    
+
     webhooks_mock = Minitest::Mock.new
-    webhooks_mock.expect :create, webhook_response, [resource: "droplet", url: "http://localhost:3200/webhook", active: true, auth_token: "secret_token", event: "installed", http_method: "post"]
-    
+    webhooks_mock.expect :create, webhook_response, [
+      {
+        resource: "droplet",
+        url: "http://localhost:3200/webhook",
+        active: true,
+        auth_token: "secret_token",
+        event: "installed",
+        http_method: "post",
+      },
+    ]
+
     @mock_client.expect :droplets, droplets_mock
     @mock_client.expect :webhooks, webhooks_mock
-    
+
     result = @service.create
-    
+
     assert result[:success]
     assert_equal droplet_data, result[:droplet]
     assert_equal webhook_data, result[:webhook]
@@ -54,9 +63,9 @@ class DropletServiceTest < ActiveSupport::TestCase
       raise FluidClient::Error, "API Error"
     end
     @mock_client.expect :droplets, droplets_mock
-    
+
     result = @service.create
-    
+
     assert_not result[:success]
     assert_equal "API Error", result[:error]
   end
@@ -68,22 +77,31 @@ class DropletServiceTest < ActiveSupport::TestCase
       "active" => true,
       "auth_token" => "secret_token",
       "event" => "installed",
-      "http_method" => "post"
+      "http_method" => "post",
     }
-    
+
     webhook_response = { "webhook" => webhook_data }
-    
+
     droplets_mock = Minitest::Mock.new
     droplets_mock.expect :update, nil
-    
+
     webhooks_mock = Minitest::Mock.new
-    webhooks_mock.expect :update, webhook_response, [resource: "droplet", url: "http://localhost:3200/webhook", active: true, auth_token: "secret_token", event: "installed", http_method: "post"]
-    
+    webhooks_mock.expect :update, webhook_response, [
+      {
+        resource: "droplet",
+        url: "http://localhost:3200/webhook",
+        active: true,
+        auth_token: "secret_token",
+        event: "installed",
+        http_method: "post",
+      },
+    ]
+
     @mock_client.expect :droplets, droplets_mock
     @mock_client.expect :webhooks, webhooks_mock
-    
+
     result = @service.update
-    
+
     assert result[:success]
     assert_equal webhook_data, result[:webhook]
   end
@@ -94,9 +112,9 @@ class DropletServiceTest < ActiveSupport::TestCase
       raise FluidClient::Error, "API Error"
     end
     @mock_client.expect :droplets, droplets_mock
-    
+
     result = @service.update
-    
+
     assert_not result[:success]
     assert_equal "API Error", result[:error]
   end
@@ -104,13 +122,13 @@ class DropletServiceTest < ActiveSupport::TestCase
   def test_initialize_uses_provided_client
     custom_client = Minitest::Mock.new
     service = DropletService.new(custom_client)
-    
+
     assert_equal custom_client.object_id, service.send(:client).object_id
   end
 
   def test_initialize_creates_new_fluid_client_when_no_client_provided
     service = DropletService.new
-    
+
     assert_instance_of FluidClient, service.send(:client)
   end
-end 
+end

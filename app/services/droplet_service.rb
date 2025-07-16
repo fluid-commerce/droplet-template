@@ -68,7 +68,7 @@ private
       active: true,
       auth_token: webhook_setting.auth_token,
       event: "installed",
-      http_method: webhook_setting.http_method.downcase
+      http_method: webhook_setting.http_method.downcase,
     }
   end
 end
