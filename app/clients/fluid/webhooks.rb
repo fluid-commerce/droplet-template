@@ -17,11 +17,11 @@ module Fluid
         @client.post("/api/company/webhooks", body: payload(attributes))
       end
 
-      def update(attributes = {})
+      def update(webhook_id, attributes = {})
         @client.put("/api/company/webhooks/#{webhook_id}", body: payload(attributes))
       end
 
-      def delete
+      def delete(webhook_id)
         @client.delete("/api/company/webhooks/#{webhook_id}")
       end
 
@@ -39,14 +39,6 @@ module Fluid
       end
 
     private
-
-      def webhook_setting
-        @webhook_setting ||= Setting.fluid_webhook
-      end
-
-      def webhook_id
-        webhook_setting.values["webhook_id"]
-      end
 
       def webhook_url
         Rails.application.routes.url_helpers.webhook_url(host: Setting.host_server.base_url)

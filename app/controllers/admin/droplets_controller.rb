@@ -1,6 +1,6 @@
 class Admin::DropletsController < AdminController
   def create
-    result = DropletService.new.create
+    result = DropletUseCase::Create.call
 
     if result[:success]
       redirect_to admin_dashboard_index_path, notice: "Droplet created successfully"
@@ -10,7 +10,7 @@ class Admin::DropletsController < AdminController
   end
 
   def update
-    result = DropletService.new.update
+    result = DropletUseCase::Update.call
 
     if result[:success]
       redirect_to admin_dashboard_index_path, notice: "Droplet updated successfully"
