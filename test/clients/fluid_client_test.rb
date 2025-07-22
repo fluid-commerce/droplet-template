@@ -58,7 +58,7 @@ describe FluidClient do
         definition_name: "custom_callback",
         url: "https://example.com/callback",
         timeout_in_seconds: 30,
-        active: false
+        active: false,
       }
 
       client.stub :post, mock_response do
@@ -114,7 +114,7 @@ describe FluidClient do
         definition_name: "test_callback",
         url: "https://test.com/callback",
         timeout_in_seconds: 15,
-        active: false
+        active: false,
       }
 
       expected_payload = {
@@ -122,8 +122,8 @@ describe FluidClient do
           "definition_name" => "test_callback",
           "url" => "https://test.com/callback",
           "timeout_in_seconds" => 15,
-          "active" => false
-        }
+          "active" => false,
+        },
       }
 
       _(client.callbacks.payload(attributes)).must_equal expected_payload
@@ -137,8 +137,8 @@ describe FluidClient do
           "definition_name" => nil,
           "url" => nil,
           "timeout_in_seconds" => 20,
-          "active" => true
-        }
+          "active" => true,
+        },
       }
 
       _(client.callbacks.payload).must_equal expected_payload

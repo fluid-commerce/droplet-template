@@ -31,8 +31,8 @@ module Fluid
             "definition_name" => attributes[:definition_name],
             "url" => attributes[:url],
             "timeout_in_seconds" => attributes.key?(:timeout_in_seconds) ? attributes[:timeout_in_seconds] : 20,
-            "active" => attributes.key?(:active) ? attributes[:active] : true
-          }
+            "active" => attributes.key?(:active) ? attributes[:active] : true,
+          },
         }
       end
 
@@ -41,9 +41,9 @@ module Fluid
       def callback_url(definition_name = "update_cart_tax")
         Rails.application.routes.url_helpers.api_v1_callback_url(
           definition_name: definition_name,
-          host: Setting.host_server.base_url
+          host: Setting.host_server.base_url,
         )
       end
     end
   end
-end 
+end
