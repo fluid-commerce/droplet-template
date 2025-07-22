@@ -41,7 +41,7 @@ describe FluidClient do
     it "gets callback definitions" do
       Tasks::Settings.create_defaults
       client = FluidClient.new
-      mock_response = { "callback_definitions" => [] }
+      mock_response = { "definitions" => [] }
 
       client.stub :get, mock_response do
         result = client.callback_definitions.get

@@ -10,7 +10,7 @@ module Fluid
       end
 
       def get
-        @client.get("/api/callback/registrations")
+        @client.get("/api/callback/definitions")
       end
     end
   end
