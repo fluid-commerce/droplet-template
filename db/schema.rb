@@ -54,6 +54,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_01_164111) do
     t.string "token"
     t.boolean "enabled", default: false
     t.jsonb "settings", default: {}
+    t.jsonb "credentials", default: {}
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["company_id"], name: "index_integration_settings_on_company_id"

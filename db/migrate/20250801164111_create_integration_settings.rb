@@ -5,6 +5,7 @@ class CreateIntegrationSettings < ActiveRecord::Migration[8.0]
       t.string :token
       t.boolean :enabled, default: false
       t.jsonb :settings, default: {}
+      t.jsonb :credentials, default: {}
 
       t.timestamps
     end
