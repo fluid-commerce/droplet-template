@@ -7,7 +7,7 @@ class CallbackSyncService
     begin
       response = @client.callback_definitions.get
 
-      if response&.dig("definitions")
+      if response&.dig("definitions")&.any?
         sync_callbacks(response["definitions"])
         { success: true, message: "Successfully synced #{response['definitions'].length} callbacks" }
       else
@@ -41,5 +41,5 @@ private
     callback.save!
   rescue => e
     Rails.logger.error "Failed to sync callback #{definition['name']}: #{e.message}"
-end
+  end
 end

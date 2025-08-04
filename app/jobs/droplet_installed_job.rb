@@ -43,14 +43,14 @@ private
   def register_active_callbacks
     client = FluidClient.new
     active_callbacks = ::Callback.active
-    
+
     active_callbacks.each do |callback|
       begin
         callback_attributes = {
-          "definition_name": callback.name,
-          "url": callback.url,
-          "timeout_in_seconds": callback.timeout_in_seconds,
-          "active": true,
+          definition_name: callback.name,
+          url: callback.url,
+          timeout_in_seconds: callback.timeout_in_seconds,
+          active: true,
         }
 
         client.callback_registrations.create(callback_attributes)

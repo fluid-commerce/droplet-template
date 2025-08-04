@@ -46,7 +46,7 @@ private
         begin
           permitted_params[field] = JSON.parse(permitted_params[field])
         rescue JSON::ParserError
-          # Let the model validation handle the error
+          permitted_params[field] = nil
         end
       end
     end
