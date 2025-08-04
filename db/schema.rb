@@ -51,7 +51,6 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_01_164111) do
 
   create_table "integration_settings", force: :cascade do |t|
     t.bigint "company_id", null: false
-    t.string "token"
     t.boolean "enabled", default: false
     t.jsonb "settings", default: {}
     t.jsonb "credentials", default: {}
