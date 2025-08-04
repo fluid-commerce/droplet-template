@@ -130,6 +130,4 @@ class CallbackTest < ActiveSupport::TestCase
     assert_includes ::Callback.active, active_callback
     assert_not_includes ::Callback.active, inactive_callback
   end
-
-
 end
