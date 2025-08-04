@@ -27,7 +27,7 @@
             <td class="pl-2 text-left text-gray-600"><%= truncate(callback.description, length: 60) %></td>
             <td class="pl-2 text-left text-gray-600">
               <% if callback.url.present? %>
-                <%= link_to truncate(callback.url, length: 40), callback.url, target: "_blank", class: "text-blue-600 hover:text-orange-600" %>
+                <%= truncate(callback.url, length: 40) %>
               <% else %>
                 <span class="text-gray-400">Not set</span>
               <% end %>
