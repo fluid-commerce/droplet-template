@@ -28,8 +28,8 @@ describe Admin::CallbacksController do
       callback: {
         url: "https://example.com/updated-callback",
         timeout_in_seconds: 15,
-        active: true
-      }
+        active: true,
+      },
     }
     must_respond_with :redirect
   end
