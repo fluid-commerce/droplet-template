@@ -12,7 +12,7 @@ gem "jbuilder"
 gem "json_schemer", "~> 2.4"
 gem "kamal", require: false
 gem "minitest-rails", "~> 8.0.0"
-gem "pg", "~> 1.1"
+gem "pg", "~> 1.6"
 gem "propshaft"
 gem "puma", ">= 5.0"
 gem "sentry-rails"
