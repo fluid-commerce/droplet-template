@@ -14,9 +14,6 @@ class CallbackSyncServiceTest < ActiveSupport::TestCase
         {
           "name" => "test_callback",
           "description" => "Test callback description",
-          "example_response" => { "test" => "response" },
-          "request_schema" => { "type" => "object" },
-          "response_schema" => { "type" => "object" },
         },
       ],
     }
@@ -38,45 +35,10 @@ class CallbackSyncServiceTest < ActiveSupport::TestCase
         {
           "name" => "apply_subscription_order_discount",
           "description" => "Apply discounts to subscription orders",
-          "example_response" => {
-            "apply_discount" => true,
-            "discount" => { "type" => "percentage", "amount" => 10 },
-          },
-          "request_schema" => {
-            "type" => "object",
-            "properties" => {
-              "id" => { "type" => "integer", "description" => "Subscription ID" },
-              "amount" => { "type" => "number", "description" => "Order amount" },
-            },
-            "required" => %w[id amount],
-          },
-          "response_schema" => {
-            "type" => "object",
-            "properties" => {
-              "apply_discount" => { "type" => "boolean", "description" => "Whether to apply a discount" },
-            },
-            "required" => [ "apply_discount" ],
-          },
         },
         {
           "name" => "redirect_cart_payment",
           "description" => "Get the redirect_url for a Payment Droplet",
-          "example_response" => { "redirect_url" => "https://some-hostname.com/path_to_complete_payment_processing" },
-          "request_schema" => {
-            "type" => "object",
-            "required" => %w[cart payment_account_id],
-            "properties" => {
-              "cart" => { "type" => "object", "description" => "Cart object" },
-              "payment_account_id" => { "type" => "string", "description" => "Payment Account ID" },
-            },
-          },
-          "response_schema" => {
-            "type" => "object",
-            "required" => [ "redirect_url" ],
-            "properties" => {
-              "redirect_url" => { "type" => "string", "description" => "The redirect URL" },
-            },
-          },
         },
       ],
       "meta" => {
@@ -110,9 +72,6 @@ class CallbackSyncServiceTest < ActiveSupport::TestCase
       description: "Old description",
       url: "https://example.com/callback",
       timeout_in_seconds: 10,
-      example_response: { "old" => "response" },
-      request_schema: { "type" => "object" },
-      response_schema: { "type" => "object" },
       active: true
     )
 
@@ -121,9 +80,6 @@ class CallbackSyncServiceTest < ActiveSupport::TestCase
         {
           "name" => "test_callback",
           "description" => "Updated description",
-          "example_response" => { "new" => "response" },
-          "request_schema" => { "type" => "object" },
-          "response_schema" => { "type" => "object" },
         },
       ],
     }
@@ -135,7 +91,6 @@ class CallbackSyncServiceTest < ActiveSupport::TestCase
     assert result[:success]
     existing_callback.reload
     assert_equal "Updated description", existing_callback.description
-    assert_equal({ "new" => "response" }, existing_callback.example_response)
     assert_not existing_callback.active
   end
 
@@ -182,16 +137,10 @@ mock_callback_definitions({ "meta" => { "timestamp" => "2025-07-29T20:52:09Z" } 
         {
           "name" => "valid_callback",
           "description" => "Valid callback",
-          "example_response" => { "test" => "response" },
-          "request_schema" => { "type" => "object" },
-          "response_schema" => { "type" => "object" },
         },
         {
           "name" => "invalid_callback",
           "description" => nil, # This will cause validation error
-          "example_response" => { "test" => "response" },
-          "request_schema" => { "type" => "object" },
-          "response_schema" => { "type" => "object" },
         },
       ],
     }
@@ -213,9 +162,6 @@ mock_callback_definitions({ "meta" => { "timestamp" => "2025-07-29T20:52:09Z" } 
       description: "Old description",
       url: "https://example.com/callback",
       timeout_in_seconds: 10,
-      example_response: { "old" => "response" },
-      request_schema: { "type" => "object" },
-      response_schema: { "type" => "object" },
       active: true
     )
 
@@ -224,9 +170,6 @@ mock_callback_definitions({ "meta" => { "timestamp" => "2025-07-29T20:52:09Z" } 
         {
           "name" => "test_callback",
           "description" => "Updated description",
-          "example_response" => { "new" => "response" },
-          "request_schema" => { "type" => "object" },
-          "response_schema" => { "type" => "object" },
         },
       ],
     }

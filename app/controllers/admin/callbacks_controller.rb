@@ -6,11 +6,9 @@ class Admin::CallbacksController < AdminController
     @callbacks = ::Callback.all.order(:name)
   end
 
-  def show
-  end
+  def show; end
 
-  def edit
-  end
+  def edit; end
 
   def update
     if @callback.update(callback_params)
@@ -38,19 +36,6 @@ private
   end
 
   def callback_params
-    permitted_params = params.require(:callback).permit(:name, :description, :active, :url, :timeout_in_seconds,
-                                                       :example_response, :request_schema, :response_schema)
-
-    %i[example_response request_schema response_schema].each do |field|
-      if permitted_params[field].present? && permitted_params[field].is_a?(String)
-        begin
-          permitted_params[field] = JSON.parse(permitted_params[field])
-        rescue JSON::ParserError
-          permitted_params[field] = nil
-        end
-      end
-    end
-
-    permitted_params
+    params.require(:callback).permit(:name, :description, :active, :url, :timeout_in_seconds)
   end
 end

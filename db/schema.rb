@@ -17,14 +17,11 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_01_164111) do
   create_table "callbacks", force: :cascade do |t|
     t.string "name"
     t.text "description"
-    t.jsonb "example_response"
-    t.jsonb "request_schema"
-    t.jsonb "response_schema"
+    t.string "url"
+    t.integer "timeout_in_seconds"
     t.boolean "active"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.string "url"
-    t.integer "timeout_in_seconds"
   end
 
   create_table "companies", force: :cascade do |t|

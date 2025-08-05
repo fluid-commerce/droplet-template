@@ -7,9 +7,6 @@ class CallbackTest < ActiveSupport::TestCase
       description: "Test callback description",
       url: "https://example.com/webhook",
       timeout_in_seconds: 10,
-      example_response: { test: "response" },
-      request_schema: { type: "object" },
-      response_schema: { type: "object" },
       active: true,
     }
   end
@@ -38,30 +35,6 @@ class CallbackTest < ActiveSupport::TestCase
     assert_includes callback.errors[:description], "can't be blank"
   end
 
-  test "should require example_response" do
-    callback = ::Callback.new(@valid_callback.except(:example_response))
-    assert_not callback.valid?
-    assert_includes callback.errors[:example_response], "can't be blank"
-  end
-
-  test "should require request_schema" do
-    callback = ::Callback.new(@valid_callback.except(:request_schema))
-    assert_not callback.valid?
-    assert_includes callback.errors[:request_schema], "can't be blank"
-  end
-
-  test "should require response_schema" do
-    callback = ::Callback.new(@valid_callback.except(:response_schema))
-    assert_not callback.valid?
-    assert_includes callback.errors[:response_schema], "can't be blank"
-  end
-
-  test "should validate active boolean" do
-    callback = ::Callback.new(@valid_callback.merge(active: nil))
-    assert_not callback.valid?
-    assert_includes callback.errors[:active], "is not included in the list"
-  end
-
   test "should validate timeout_in_seconds range" do
     callback = ::Callback.new(@valid_callback.merge(timeout_in_seconds: 0))
     assert_not callback.valid?
@@ -70,29 +43,6 @@ class CallbackTest < ActiveSupport::TestCase
     callback = ::Callback.new(@valid_callback.merge(timeout_in_seconds: 21))
     assert_not callback.valid?
     assert_includes callback.errors[:timeout_in_seconds], "must be less than or equal to 20"
-  end
-
-  test "should accept valid JSON objects" do
-    callback = ::Callback.new(@valid_callback)
-    assert callback.valid?
-  end
-
-  test "should reject invalid JSON in example_response" do
-    callback = ::Callback.new(@valid_callback.merge(example_response: "invalid json"))
-    assert_not callback.valid?
-    assert_includes callback.errors[:example_response], "must be a valid JSON object"
-  end
-
-  test "should reject invalid JSON in request_schema" do
-    callback = ::Callback.new(@valid_callback.merge(request_schema: "invalid json"))
-    assert_not callback.valid?
-    assert_includes callback.errors[:request_schema], "must be a valid JSON object"
-  end
-
-  test "should reject invalid JSON in response_schema" do
-    callback = ::Callback.new(@valid_callback.merge(response_schema: "invalid json"))
-    assert_not callback.valid?
-    assert_includes callback.errors[:response_schema], "must be a valid JSON object"
   end
 
   test "should not allow active without URL" do

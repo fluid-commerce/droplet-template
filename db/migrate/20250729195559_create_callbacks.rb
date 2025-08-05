@@ -3,9 +3,8 @@ class CreateCallbacks < ActiveRecord::Migration[8.0]
     create_table :callbacks do |t|
       t.string :name
       t.text :description
-      t.jsonb :example_response
-      t.jsonb :request_schema
-      t.jsonb :response_schema
+      t.string :url
+      t.integer :timeout_in_seconds
       t.boolean :active
 
       t.timestamps

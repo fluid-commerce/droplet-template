@@ -32,9 +32,6 @@ private
 
     callback.assign_attributes(
       description: definition["description"],
-      example_response: definition["example_response"],
-      request_schema: definition["request_schema"],
-      response_schema: definition["response_schema"],
       active: false
     )
 
