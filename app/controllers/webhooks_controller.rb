@@ -37,7 +37,7 @@ private
     auth_header = request.headers["AUTH_TOKEN"] || request.headers["X-Auth-Token"] || request.env["HTTP_AUTH_TOKEN"]
     webhook_auth_token = Setting.fluid_webhook.auth_token
 
-    return true if auth_header.present? && auth_header == webhook_auth_token
+    auth_header.present? && auth_header == webhook_auth_token
   end
 
   def find_company

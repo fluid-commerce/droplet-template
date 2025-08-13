@@ -29,7 +29,7 @@ describe DropletUninstalledJob do
     it "deletes callbacks when company has installed callbacks" do
       # Set up an installed company with callbacks
       company = companies(:acme)
-      company.update(uninstalled_at: nil, installed_callback_ids: ["cbr_test123", "cbr_test456"])
+      company.update(uninstalled_at: nil, installed_callback_ids: %w[cbr_test123 cbr_test456])
 
       # Create payload with company identifier
       payload = {
@@ -51,7 +51,7 @@ describe DropletUninstalledJob do
     it "handles callback deletion errors gracefully" do
       # Set up an installed company with callbacks
       company = companies(:acme)
-      company.update(uninstalled_at: nil, installed_callback_ids: ["cbr_test123", "cbr_test456"])
+      company.update(uninstalled_at: nil, installed_callback_ids: %w[cbr_test123 cbr_test456])
 
       # Create payload with company identifier
       payload = {
