@@ -1,0 +1,38 @@
+cubes:
+  - name: awards
+    data_source: fluid-replica
+    sql_table: public.awards
+
+    dimensions:
+      - name: id
+        type: string
+        sql: id
+        primary_key: true
+        public: true
+      - name: created_at
+        type: time
+        sql: created_at
+      - name: updated_at
+        type: time
+        sql: updated_at
+      - name: user_id
+        type: number
+        sql: user_id
+      - name: badge_id
+        type: number
+        sql: badge_id
+      - name: seen_at
+        type: time
+        sql: seen_at
+
+    measures:
+      - name: count
+        type: count
+
+    joins:
+      - name: users
+        sql: "{CUBE}.user_id = {users}.id"
+        relationship: many_to_one
+      - name: badges
+        sql: "{CUBE}.badge_id = {badges}.id"
+        relationship: many_to_one

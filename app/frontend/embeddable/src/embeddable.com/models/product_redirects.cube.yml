@@ -1,0 +1,38 @@
+cubes:
+  - name: product_redirects
+    data_source: fluid-replica
+    sql_table: public.product_redirects
+
+    dimensions:
+      - name: id
+        type: string
+        sql: id
+        primary_key: true
+        public: true
+      - name: country_id
+        type: number
+        sql: country_id
+      - name: product_id
+        type: number
+        sql: product_id
+      - name: external_url
+        type: string
+        sql: external_url
+      - name: created_at
+        type: time
+        sql: created_at
+      - name: updated_at
+        type: time
+        sql: updated_at
+
+    measures:
+      - name: count
+        type: count
+
+    joins:
+      - name: countries
+        sql: "{CUBE}.country_id = {countries}.id"
+        relationship: many_to_one
+      - name: products
+        sql: "{CUBE}.product_id = {products}.id"
+        relationship: many_to_one

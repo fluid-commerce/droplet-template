@@ -1,0 +1,2 @@
+import{f as n}from"./p-BvW5kj19.js";function t(n){return t=>{const r=(n?Math[n]:Math.trunc)(t);return r===0?0:r}}function r(t,r){return+n(t)-+n(r)}function o(t){const r=n(t);return r.setHours(23,59,59,999),r}function u(n,o,u){const c=r(n,o)/1e3;return t(void 0)(c)}export{t as c,r as e,o as f,u as s};
+//# sourceMappingURL=p-DUIxdZrE.js.map

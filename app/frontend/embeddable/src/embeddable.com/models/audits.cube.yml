@@ -1,0 +1,65 @@
+cubes:
+  - name: audits
+    data_source: fluid-replica
+    sql_table: public.audits
+
+    dimensions:
+      - name: id
+        type: string
+        sql: id
+        primary_key: true
+        public: true
+      - name: created_at
+        type: time
+        sql: created_at
+      - name: updated_at
+        type: time
+        sql: updated_at
+      - name: auditable_id
+        type: number
+        sql: auditable_id
+      - name: auditable_type
+        type: string
+        sql: auditable_type
+      - name: associated_id
+        type: number
+        sql: associated_id
+      - name: associated_type
+        type: string
+        sql: associated_type
+      - name: user_id
+        type: number
+        sql: user_id
+      - name: user_type
+        type: string
+        sql: user_type
+      - name: username
+        type: string
+        sql: username
+      - name: action
+        type: string
+        sql: action
+      - name: audited_changes
+        type: string
+        sql: audited_changes
+      - name: comment
+        type: string
+        sql: comment
+      - name: remote_address
+        type: string
+        sql: remote_address
+      - name: request_uuid
+        type: string
+        sql: request_uuid
+      - name: version
+        type: number
+        sql: version
+
+    measures:
+      - name: count
+        type: count
+
+    joins:
+      - name: users
+        sql: "{CUBE}.user_id = {users}.id"
+        relationship: many_to_one

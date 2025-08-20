@@ -1,0 +1,77 @@
+cubes:
+  - name: application_theme_templates
+    data_source: fluid-replica
+    sql: |-
+      SELECT * FROM public.application_theme_templates
+      WHERE company_id = { COMPILE_CONTEXT.securityContext.company_id }
+
+    dimensions:
+      - name: id
+        type: string
+        sql: id
+        primary_key: true
+        public: true
+      - name: created_at
+        type: time
+        sql: created_at
+      - name: updated_at
+        type: time
+        sql: updated_at
+      - name: application_theme_id
+        type: number
+        sql: application_theme_id
+      - name: themeable_type
+        type: number
+        sql: themeable_type
+      - name: name
+        type: string
+        sql: name
+      - name: content
+        type: string
+        sql: content
+      - name: fluid
+        type: boolean
+        sql: fluid
+      - name: status
+        type: number
+        sql: status
+      - name: parent_id
+        type: number
+        sql: parent_id
+      - name: applicable
+        type: number
+        sql: applicable
+      - name: stylesheet
+        type: string
+        sql: stylesheet
+      - name: kind
+        type: number
+        sql: kind
+      - name: default
+        type: boolean
+        sql: default
+      - name: head
+        type: string
+        sql: head
+      - name: use_active_application_theme
+        type: boolean
+        sql: use_active_application_theme
+      - name: format
+        type: string
+        sql: format
+      - name: company_id
+        type: number
+        sql: company_id
+      - name: metadata
+        type: string
+        sql: metadata
+      - name: variables
+        type: string
+        sql: variables
+      - name: translations
+        type: string
+        sql: translations
+
+    measures:
+      - name: count
+        type: count

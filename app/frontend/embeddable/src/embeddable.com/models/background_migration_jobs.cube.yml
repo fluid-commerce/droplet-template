@@ -1,0 +1,68 @@
+cubes:
+  - name: background_migration_jobs
+    data_source: fluid-replica
+    sql_table: public.background_migration_jobs
+
+    dimensions:
+      - name: id
+        type: string
+        sql: id
+        primary_key: true
+        public: true
+      - name: created_at
+        type: time
+        sql: created_at
+      - name: updated_at
+        type: time
+        sql: updated_at
+      - name: migration_id
+        type: number
+        sql: migration_id
+      - name: min_value
+        type: number
+        sql: min_value
+      - name: max_value
+        type: number
+        sql: max_value
+      - name: batch_size
+        type: number
+        sql: batch_size
+      - name: sub_batch_size
+        type: number
+        sql: sub_batch_size
+      - name: pause_ms
+        type: number
+        sql: pause_ms
+      - name: started_at
+        type: time
+        sql: started_at
+      - name: finished_at
+        type: time
+        sql: finished_at
+      - name: status
+        type: string
+        sql: status
+      - name: max_attempts
+        type: number
+        sql: max_attempts
+      - name: attempts
+        type: number
+        sql: attempts
+      - name: error_class
+        type: string
+        sql: error_class
+      - name: error_message
+        type: string
+        sql: error_message
+      - name: backtrace
+        type: string
+        sql: backtrace
+
+    measures:
+      - name: count
+        type: count
+
+    joins:
+      - name: background_migrations
+        sql: "{CUBE}.migration_id = {background_migrations}.id"
+        relationship: many_to_one

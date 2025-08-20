@@ -1,0 +1,2 @@
+function a(a,n){const r=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(a);return r?`rgba(${parseInt(r[1],16)}, ${parseInt(r[2],16)}, ${parseInt(r[3],16)}, ${n||1})`:""}export{a as r};
+//# sourceMappingURL=p-BIFnrNPV.js.map
