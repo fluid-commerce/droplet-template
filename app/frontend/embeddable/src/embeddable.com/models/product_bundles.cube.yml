@@ -1,0 +1,44 @@
+cubes:
+  - name: product_bundles
+    data_source: fluid-replica
+    sql_table: public.product_bundles
+
+    dimensions:
+      - name: id
+        type: string
+        sql: id
+        primary_key: true
+        public: true
+      - name: product_id
+        type: number
+        sql: product_id
+      - name: bundled_variant_id
+        type: number
+        sql: bundled_variant_id
+      - name: quantity
+        type: number
+        sql: quantity
+      - name: tax_percentage
+        type: number
+        sql: tax_percentage
+      - name: display_externally
+        type: boolean
+        sql: display_externally
+      - name: created_at
+        type: time
+        sql: created_at
+      - name: updated_at
+        type: time
+        sql: updated_at
+
+    measures:
+      - name: count
+        type: count
+
+    joins:
+      - name: products
+        sql: "{CUBE}.product_id = {products}.id"
+        relationship: many_to_one
+      - name: variants
+        sql: "{CUBE}.bundled_variant_id = {variants}.id"
+        relationship: many_to_one

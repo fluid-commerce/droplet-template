@@ -1,0 +1,43 @@
+cubes:
+  - name: redirects
+    data_source: fluid-replica
+    sql: |-
+      SELECT * FROM public.redirects
+      WHERE company_id = { COMPILE_CONTEXT.securityContext.company_id }
+
+    dimensions:
+      - name: id
+        type: string
+        sql: id
+        primary_key: true
+        public: true
+      - name: company_id
+        type: number
+        sql: company_id
+      - name: path
+        type: string
+        sql: path
+      - name: target
+        type: string
+        sql: target
+      - name: domain_id
+        type: number
+        sql: domain_id
+      - name: created_at
+        type: time
+        sql: created_at
+      - name: updated_at
+        type: time
+        sql: updated_at
+
+    measures:
+      - name: count
+        type: count
+
+    joins:
+      - name: companies
+        sql: "{CUBE}.company_id = {companies}.id"
+        relationship: many_to_one
+      - name: domains
+        sql: "{CUBE}.domain_id = {domains}.id"
+        relationship: many_to_one

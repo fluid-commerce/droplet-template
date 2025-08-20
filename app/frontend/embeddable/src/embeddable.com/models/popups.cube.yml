@@ -1,0 +1,109 @@
+cubes:
+  - name: popups
+    data_source: fluid-replica
+    sql: |-
+      SELECT * FROM public.popups
+      WHERE company_id = { COMPILE_CONTEXT.securityContext.company_id }
+
+    dimensions:
+      - name: id
+        type: string
+        sql: id
+        primary_key: true
+        public: true
+      - name: company_id
+        type: number
+        sql: company_id
+      - name: title
+        type: string
+        sql: title
+      - name: header
+        type: string
+        sql: header
+      - name: description
+        type: string
+        sql: description
+      - name: image_url
+        type: string
+        sql: image_url
+      - name: image_path
+        type: string
+        sql: image_path
+      - name: event
+        type: string
+        sql: event
+      - name: popup_type
+        type: string
+        sql: popup_type
+      - name: seconds
+        type: number
+        sql: seconds
+      - name: followable_type
+        type: string
+        sql: followable_type
+      - name: followable_id
+        type: number
+        sql: followable_id
+      - name: global
+        type: boolean
+        sql: global
+      - name: active
+        type: boolean
+        sql: active
+      - name: button_text
+        type: string
+        sql: button_text
+      - name: button_redirect
+        type: string
+        sql: button_redirect
+      - name: email_subject
+        type: string
+        sql: email_subject
+      - name: email_body
+        type: string
+        sql: email_body
+      - name: background_color
+        type: string
+        sql: background_color
+      - name: text_color
+        type: string
+        sql: text_color
+      - name: button_color
+        type: string
+        sql: button_color
+      - name: button_text_color
+        type: string
+        sql: button_text_color
+      - name: button_action
+        type: number
+        sql: button_action
+      - name: token
+        type: string
+        sql: token
+      - name: display_success_message
+        type: boolean
+        sql: display_success_message
+      - name: success_message_type
+        type: number
+        sql: success_message_type
+      - name: message_title
+        type: string
+        sql: message_title
+      - name: message_body
+        type: string
+        sql: message_body
+      - name: created_at
+        type: time
+        sql: created_at
+      - name: updated_at
+        type: time
+        sql: updated_at
+
+    measures:
+      - name: count
+        type: count
+
+    joins:
+      - name: companies
+        sql: "{CUBE}.company_id = {companies}.id"
+        relationship: many_to_one

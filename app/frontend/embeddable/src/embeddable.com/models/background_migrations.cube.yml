@@ -1,0 +1,66 @@
+cubes:
+  - name: background_migrations
+    data_source: fluid-replica
+    sql_table: public.background_migrations
+
+    dimensions:
+      - name: id
+        type: string
+        sql: id
+        primary_key: true
+        public: true
+      - name: created_at
+        type: time
+        sql: created_at
+      - name: updated_at
+        type: time
+        sql: updated_at
+      - name: parent_id
+        type: number
+        sql: parent_id
+      - name: migration_name
+        type: string
+        sql: migration_name
+      - name: arguments
+        type: string
+        sql: arguments
+      - name: batch_column_name
+        type: string
+        sql: batch_column_name
+      - name: min_value
+        type: number
+        sql: min_value
+      - name: max_value
+        type: number
+        sql: max_value
+      - name: rows_count
+        type: number
+        sql: rows_count
+      - name: batch_size
+        type: number
+        sql: batch_size
+      - name: sub_batch_size
+        type: number
+        sql: sub_batch_size
+      - name: batch_pause
+        type: number
+        sql: batch_pause
+      - name: sub_batch_pause_ms
+        type: number
+        sql: sub_batch_pause_ms
+      - name: batch_max_attempts
+        type: number
+        sql: batch_max_attempts
+      - name: status
+        type: string
+        sql: status
+      - name: shard
+        type: string
+        sql: shard
+      - name: composite
+        type: boolean
+        sql: composite
+
+    measures:
+      - name: count
+        type: count

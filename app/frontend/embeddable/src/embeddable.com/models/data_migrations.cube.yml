@@ -1,0 +1,14 @@
+cubes:
+  - name: data_migrations
+    data_source: fluid-replica
+    sql_table: public.data_migrations
+
+    dimensions:
+      - name: id
+        type: string
+        sql: id
+        primary_key: true
+        public: true
+      - name: version
+        type: string
+        sql: version
