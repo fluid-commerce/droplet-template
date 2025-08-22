@@ -176,8 +176,8 @@ describe DropletUninstalledJob do
       mock_callback_registrations = Minitest::Mock.new
 
       mock_client.expect :callback_registrations, mock_callback_registrations
-      mock_callback_registrations.expect :delete, true, ["cbr_test123"]
-      mock_callback_registrations.expect :delete, true, ["cbr_test456"]
+      mock_callback_registrations.expect :delete, true, [ "cbr_test123" ]
+      mock_callback_registrations.expect :delete, true, [ "cbr_test456" ]
 
       captured_token = nil
       FluidClient.stub :new, ->(token) { captured_token = token; mock_client } do
