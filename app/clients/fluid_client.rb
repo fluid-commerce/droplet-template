@@ -16,7 +16,7 @@ class FluidClient
 
   def initialize(auth_token = nil)
     @http = self.class
-    @auth_token = auth_token || Setting.fluid_api.api_key
+    @auth_token = auth_token
   end
 
   def get(path, options = {})
