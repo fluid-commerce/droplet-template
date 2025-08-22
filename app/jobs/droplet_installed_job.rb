@@ -41,8 +41,14 @@ class DropletInstalledJob < WebhookEventJob
 
 private
 
+  def get_company
+    company_attributes = get_payload.fetch("company", {})
+    Company.find_by(fluid_shop: company_attributes["fluid_shop"])
+  end
+
   def register_active_callbacks
-    client = FluidClient.new
+    company = get_company
+    client = FluidClient.new(company.authentication_token)
     active_callbacks = ::Callback.active
     installed_callback_ids = []
 
