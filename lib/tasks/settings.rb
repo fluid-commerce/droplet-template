@@ -1,6 +1,32 @@
 module Tasks
   class Settings
     class << self
+
+      AVAILABLE_WEBHOOK_EVENTS = %w[
+        cart_abandoned
+        cart_updated
+        contact_created
+        contact_updated
+        event_created
+        event_deleted
+        event_updated
+        order_cancelled
+        order_completed
+        order_updated
+        order_shipped
+        order_refunded
+        popup_submitted
+        product_created
+        product_updated
+        product_destroyed
+        subscription_started
+        subscription_paused
+        subscription_cancelled
+        user_created
+        user_updated
+        user_deactivated
+      ]
+
       def create_defaults
         create_host_server_setting
         create_fluid_api_setting
@@ -191,6 +217,10 @@ module Tasks
               },
               webhook_uninstallation_id: {
                 type: "string",
+              },
+              events: {
+                type: "array",
+                items: { enum: AVAILABLE_WEBHOOK_EVENTS },
               },
             },
           }
