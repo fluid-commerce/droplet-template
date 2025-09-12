@@ -15,10 +15,10 @@ module "rails_jobs" {
   # Container variable values
   container_image                   = var.container_image
   container_rails_master_key        = var.container_rails_master_key
-  container_db_url_production       = var.container_db_url_production
-  container_db_url_production_queue = var.container_db_url_production_queue
-  container_db_url_production_cache = var.container_db_url_production_cache
-  container_db_url_production_cable = var.container_db_url_production_cable
+  container_db_url_production       = "${var.container_db_url_production}${module.postgres_db_instance.db_instance_private_ip}"
+  container_db_url_production_queue = "${var.container_db_url_production_queue}${module.postgres_db_instance.db_instance_private_ip}"
+  container_db_url_production_cache = "${var.container_db_url_production_cache}${module.postgres_db_instance.db_instance_private_ip}"
+  container_db_url_production_cable = "${var.container_db_url_production_cable}${module.postgres_db_instance.db_instance_private_ip}"
 
   # Depends on
   depends_on = [

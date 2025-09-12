@@ -17,8 +17,8 @@ module "postgres_db_instance" {
   environment = var.environment
 
   # IP configuration for the instance
-  ipv4_enabled = true
-
+  ipv4_enabled = var.postgres_ip_public_database
+  private_network_database = var.postgres_private_network
 }
 
 # Cloud SQL PostgreSQL databases
@@ -43,7 +43,7 @@ resource "google_sql_database" "database_production_cable" {
 }
 
 resource "google_sql_user" "users" {
-  name     = "shiphero_production_user"
+  name     = var.postgres_user_name
   instance = module.postgres_db_instance.db_instance_name
   password = var.postgres_password_production_user
 }

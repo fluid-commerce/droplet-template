@@ -4,7 +4,7 @@ terraform {
 
   backend "gcs" {
     bucket = "fluid-terraform"
-    prefix = "fluid-droplet-shiphero/production"
+    prefix = "fluid-droplet-embeddable/production"
   }
 
   required_providers {
