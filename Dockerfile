@@ -36,9 +36,13 @@ RUN bundle install && \
     rm -rf ~/.bundle/ "${BUNDLE_PATH}"/ruby/*/cache "${BUNDLE_PATH}"/ruby/*/bundler/gems/*/.git && \
     bundle exec bootsnap precompile --gemfile
 
-# Copy package.json first, then enable Corepack and install node modules
-COPY package.json yarn.lock ./
-RUN corepack enable && yarn install --frozen-lockfile
+# Copy package.json first, then enable Corepack and install node modules.
+# The repo moved from yarn to pnpm when the Next app took over the root
+# package.json; the Rails frontend's Vite dependencies are still declared there,
+# and vite_ruby detects pnpm from the lockfile during assets:precompile.
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml* ./
+COPY vendor/droplet-sdk ./vendor/droplet-sdk
+RUN corepack enable && corepack prepare pnpm@10.17.1 --activate && pnpm install --frozen-lockfile
 
 # Copy application code
 COPY . .
