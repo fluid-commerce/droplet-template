@@ -6,8 +6,8 @@ export const HEADER_SIGNATURE = "x-fluid-signature";
 export const HEADER_SHOP = "x-fluid-shop";
 
 /**
- * The event that arrives before any per-company secret exists, and therefore
- * the only one a shared bootstrap token may authenticate.
+ * The event that arrives before any per-company secret exists, and so the
+ * default — and only sensible — member of `bootstrapEvents`.
  */
 export const INSTALL_EVENT = "droplet.installed";
 
@@ -61,13 +61,26 @@ export interface WithFluidWebhookConfig<Principal> {
   ) => Promise<ResolvedWebhookPrincipal<Principal> | null>;
 
   /**
-   * Shared token accepted *only* for `droplet.installed`.
+   * Shared token accepted only for the events in `bootstrapEvents`, which
+   * defaults to `droplet.installed` alone.
    *
-   * Every other event requires a valid signature. Accepting a shared token
-   * generally is the bypass several droplets rely on today.
+   * A first install has no per-company secret yet, so something has to
+   * authenticate it. Every other event requires a signature: a shared value
+   * accepted generally is a bypass, because one leaked copy authenticates
+   * anything.
    */
   bootstrapSecret?: string;
-  /** Extra events permitted to use the bootstrap secret. Use sparingly. */
+  /**
+   * The complete set of events permitted to use the bootstrap secret.
+   *
+   * REPLACES the default rather than adding to it, so a list that omits
+   * `droplet.installed` stops installs verifying. Include it explicitly unless
+   * that is what you intend. Defaults to `["droplet.installed"]`.
+   *
+   * Replacement rather than addition is deliberate for a security control: the
+   * list is exactly what the caller sees when reading their own code, with no
+   * inherited entry to overlook.
+   */
   bootstrapEvents?: string[];
   logger?: Logger;
   name?: string;

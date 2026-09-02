@@ -13,7 +13,7 @@
  * the registration that was just created.
  */
 
-import { tokenDigest } from "@fluid-studios/droplet-sdk";
+import { tokenDigest } from "@fluid-app/droplet-sdk";
 
 import type { FluidClient } from "@/lib/fluid";
 import { prisma } from "@/lib/db";

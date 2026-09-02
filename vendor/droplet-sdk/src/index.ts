@@ -21,3 +21,8 @@ export {
   type BackfillResult,
   type CallbackListingClient,
 } from "./backfill";
+
+export {
+  reportCallbackVerificationReadiness,
+  type CallbackVerificationReadiness,
+} from "./readiness";

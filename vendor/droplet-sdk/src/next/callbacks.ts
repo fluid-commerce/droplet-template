@@ -20,9 +20,8 @@ export interface CallbackContext<Principal> {
   /**
    * The registration whose token verified this request.
    *
-   * Non-nullable, and now truthfully so: every path that leaves it unresolved
-   * returns before the handler runs. It was briefly nullable to describe the
-   * observe-mode fallback, which no longer exists.
+   * Never null: every path that leaves it unresolved returns before the handler
+   * runs.
    */
   registration: StoredRegistration;
   /** The body stream is consumed by the wrapper, so these are passed explicitly. */
@@ -42,9 +41,9 @@ export interface WithFluidCallbackConfig<Principal> {
   /**
    * Definition names this route serves.
    *
-   * An array because routes legitimately serve several: droplet-yoli-promos
-   * registers /api/callbacks/cart-item-changed under five. A token issued for a
-   * definition this route does not serve is rejected.
+   * An array because one route legitimately serves several — a single
+   * cart-item-changed handler may be registered under five definitions. A token
+   * issued for a definition this route does not serve is rejected.
    */
   definitions: string[];
   store: CallbackTokenStore;
@@ -67,9 +66,9 @@ export interface WithFluidCallbackConfig<Principal> {
   /**
    * Failure policy. Defaults fail closed with 401/400/500.
    *
-   * Routes on the checkout path must override these — droplet-zonos-tax-and-duties
-   * answers a failed tax calculation with a zero-tax object, and returning a 401
-   * there would break the cart rather than protect it.
+   * Routes on the checkout path must override these — a tax droplet answers a
+   * failed calculation with a zero-tax object, and returning a 401 there would
+   * break the cart rather than protect it.
    */
   onAuthFailure?: (failure: CallbackFailure) => Response;
   onInvalidBody?: (failure: CallbackFailure) => Response;

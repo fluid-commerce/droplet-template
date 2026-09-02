@@ -1,10 +1,8 @@
 /**
  * Storage port for callback verification tokens.
  *
- * Deliberately narrow. The SDK owns exactly one table — the one no droplet has
- * today — so there is nothing to remap and no existing data to migrate.
- * Installation and company storage stay app-owned, because every droplet
- * already has a working version under a different model name.
+ * Deliberately narrow: this package owns one table and nothing else.
+ * Installation and company storage stay app-owned.
  */
 
 export interface StoredRegistration {

@@ -3,12 +3,11 @@
  *
  * The rule this package enforces: a request body never reaches a log line.
  * Fluid install payloads carry `authentication_token` and
- * `webhook_verification_token`; cart payloads carry customer PII. Neither is
- * something a droplet should be writing to Cloud Logging.
+ * `webhook_verification_token`, and cart payloads carry customer PII, so
+ * neither belongs in a log.
  *
- * The SDK can only guarantee this for logging it performs itself. Handlers that
- * log their own bodies are outside its reach — those log sites have to be
- * deleted per droplet during migration.
+ * This can only be guaranteed for logging the package performs itself. A
+ * handler that logs its own body is outside its reach.
  */
 
 /** Keys whose values are replaced wherever they appear. */

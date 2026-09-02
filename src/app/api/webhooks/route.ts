@@ -26,7 +26,7 @@
  *    that company's own `webhook_verification_token`.
  */
 
-import { withFluidWebhook, INSTALL_EVENT } from "@fluid-studios/droplet-sdk/next";
+import { withFluidWebhook, INSTALL_EVENT } from "@fluid-app/droplet-sdk/next";
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";

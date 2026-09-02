@@ -6,8 +6,8 @@
  * database yields no working callback credentials.
  */
 
-import { createPrismaCallbackStore } from "@fluid-studios/droplet-sdk/prisma";
-import type { StoredRegistration } from "@fluid-studios/droplet-sdk";
+import { createPrismaCallbackStore } from "@fluid-app/droplet-sdk/prisma";
+import type { StoredRegistration } from "@fluid-app/droplet-sdk";
 
 import { prisma } from "@/lib/db";
 

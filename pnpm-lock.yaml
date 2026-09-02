@@ -8,7 +8,7 @@ importers:
 
   .:
     dependencies:
-      '@fluid-studios/droplet-sdk':
+      '@fluid-app/droplet-sdk':
         specifier: link:./vendor/droplet-sdk
         version: link:vendor/droplet-sdk
       '@fortawesome/fontawesome-svg-core':

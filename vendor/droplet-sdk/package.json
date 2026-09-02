@@ -1,5 +1,5 @@
 {
-  "name": "@fluid-studios/droplet-sdk",
+  "name": "@fluid-app/droplet-sdk",
   "version": "0.1.0",
   "description": "Vendored copy of the Fluid droplet SDK. See ./README.md before touching this directory.",
   "private": true,

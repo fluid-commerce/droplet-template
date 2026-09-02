@@ -23,7 +23,7 @@
     "test:jest": "jest"
   },
   "dependencies": {
-    "@fluid-studios/droplet-sdk": "link:./vendor/droplet-sdk",
+    "@fluid-app/droplet-sdk": "link:./vendor/droplet-sdk",
     "@fortawesome/fontawesome-svg-core": "^6.7.2",
     "@fortawesome/free-regular-svg-icons": "^6.7.2",
     "@fortawesome/free-solid-svg-icons": "^6.7.2",

@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { tokenDigest } from "@fluid-studios/droplet-sdk";
+import { tokenDigest } from "@fluid-app/droplet-sdk";
 
 const mockPrisma = vi.hoisted(() => ({
   callback: { findMany: vi.fn() },

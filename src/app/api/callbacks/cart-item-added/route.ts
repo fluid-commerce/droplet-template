@@ -27,7 +27,7 @@
  * it active. It is then registered for each company at install time.
  */
 
-import { withFluidCallback } from "@fluid-studios/droplet-sdk/next";
+import { withFluidCallback } from "@fluid-app/droplet-sdk/next";
 import { NextResponse } from "next/server";
 
 import { callbackStore, resolvePrincipal } from "@/lib/callbacks";

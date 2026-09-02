@@ -22,7 +22,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // The SDK ships TypeScript source (its exports map points at src/), and it is
   // linked from ../vendor rather than installed, so Next has to compile it.
-  transpilePackages: ["@fluid-studios/droplet-sdk"],
+  transpilePackages: ["@fluid-app/droplet-sdk"],
 
   // Dependencies live in the repo root's node_modules, one level above the
   // project directory, so tracing has to start there or the standalone bundle

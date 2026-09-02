@@ -25,7 +25,7 @@ import {
   backfillCallbackTokens,
   type CallbackTokenStore,
   type StoredRegistration,
-} from "@fluid-studios/droplet-sdk";
+} from "@fluid-app/droplet-sdk";
 
 import { prisma } from "@/lib/db";
 import type { FluidClient } from "@/lib/fluid";
