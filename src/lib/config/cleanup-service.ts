@@ -38,9 +38,24 @@ async function cleanupWebhooks(
     return results;
   }
 
+  // Our own webhook endpoint. Registration builds every url this way, so it is
+  // what distinguishes our registrations from another droplet's.
+  const ownUrl = `${process.env.FLUID_DROPLET_URL}/api/webhooks`;
+
   for (const wanted of enabled) {
+    // Matched on url as well as resource+event. `listWebhooks` is COMPANY
+    // scoped, not droplet scoped: another droplet installed for the same
+    // company that also subscribes to, say, order.created appears in this list.
+    // Filtering on resource+event alone deleted its webhook too — uninstalling
+    // this droplet silently broke that one, for that company, with no error on
+    // either side. The callback cleanup already avoids this by acting only on
+    // uuids we recorded; webhooks have no such record, so the url is the
+    // discriminator.
     const matching = webhooks.filter(
-      (w) => w.resource === wanted.resource && w.event === wanted.event,
+      (w) =>
+        w.resource === wanted.resource &&
+        w.event === wanted.event &&
+        w.url === ownUrl,
     );
     for (const webhook of matching) {
       try {

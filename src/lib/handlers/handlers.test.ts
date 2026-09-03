@@ -17,7 +17,7 @@ const mockPrisma = vi.hoisted(() => ({
   fluidCallbackRegistration: {
     findUnique: vi.fn(),
     upsert: vi.fn(),
-    deleteMany: vi.fn(),
+    deleteMany: vi.fn(async () => ({ count: 0 })),
     count: vi.fn(),
   },
 }));
@@ -134,11 +134,40 @@ describe("handleDropletInstalled", () => {
     expect(update.data.active).toBe(true);
   });
 
-  it("clears stale callback digests before re-registering", async () => {
-    // Otherwise a reinstall leaves rows pointing at tokens Fluid no longer
-    // holds, and a genuine request verifies against nothing.
+  it("prunes superseded digests only AFTER a clean registration", async () => {
+    // Never before. Webhook delivery is at-least-once, so a redelivered
+    // droplet.installed for a working installation used to delete the live
+    // digest, then get 409 from createCallback because Fluid still held that
+    // registration — leaving Fluid calling a registration whose token we no
+    // longer had, and every one of those callbacks refused behind a 200.
     await handleDropletInstalled(installPayload);
-    expect(deleteForInstallation).toHaveBeenCalledWith("dri_acme");
+
+    expect(deleteForInstallation).not.toHaveBeenCalled();
+    expect(mockPrisma.fluidCallbackRegistration.deleteMany).toHaveBeenCalledWith({
+      where: { dri: "dri_acme", uuid: { notIn: ["cbr_1"] } },
+    });
+  });
+
+  it("keeps every stored digest when registration did not complete cleanly", async () => {
+    // The failure is typically a 409 for a registration that is live, working,
+    // and whose token we already hold. Deleting that row is exactly how a
+    // healthy installation gets broken.
+    registerCallbacksForCompany.mockResolvedValueOnce({
+      success: 0,
+      failed: 1,
+      registeredUuids: [],
+      // Contents do not matter here — `failed > 0` is what decides whether the
+      // prune runs. In production this is a 409: the registration is already
+      // live and working, and we still hold its token.
+      errors: [],
+    });
+
+    await handleDropletInstalled(installPayload);
+
+    expect(
+      mockPrisma.fluidCallbackRegistration.deleteMany,
+    ).not.toHaveBeenCalled();
+    expect(deleteForInstallation).not.toHaveBeenCalled();
   });
 
   it("ignores an install event for a different droplet", async () => {

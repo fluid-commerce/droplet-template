@@ -14,7 +14,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { createFluidClient } from "@/lib/fluid";
 import { dropletConfig, registerAllFeatures } from "@/lib/config";
-import { registerCallbacksForCompany, callbackStore } from "@/lib/callbacks";
+import { registerCallbacksForCompany } from "@/lib/callbacks";
 import { dropletSettings } from "@/lib/settings";
 
 /**
@@ -121,19 +121,48 @@ export async function handleDropletInstalled(payload: unknown): Promise<void> {
 
   const dri = company.dropletInstallationUuid ?? "";
 
-  // A reinstall re-registers callbacks Fluid may still hold from the previous
-  // installation. Clearing the stored digests first means a duplicate
-  // registration cannot leave a row pointing at a token that is no longer live.
-  if (dri) {
-    await callbackStore.deleteForInstallation(dri).catch((error) => {
-      console.warn(
-        "[DropletInstalled] Could not clear previous callback tokens:",
-        error instanceof Error ? error.message : error,
-      );
-    });
-  }
-
+  // Register FIRST, prune afterwards, and only when the registration actually
+  // succeeded.
+  //
+  // This used to clear the stored digests before registering. Webhook delivery
+  // is at-least-once, so a redelivered `droplet.installed` for an installation
+  // that is already working would: delete the live digest, then get 409 from
+  // `createCallback` because Fluid still holds that registration, then log the
+  // failure and return 202. Fluid keeps calling the original registration with
+  // the original token, and the droplet — now holding no digest for it —
+  // refuses every one of those callbacks behind a neutral 200. A retry of a
+  // successful install silently broke it.
+  //
+  // So local state is never destroyed before a replacement exists.
   const results = await registerCallbacksForCompany(client, dri);
+
+  if (dri) {
+    if (results.failed === 0 && results.registeredUuids.length > 0) {
+      // A clean run: every enabled definition was created and its fresh token
+      // stored. Anything else still on this installation is from a previous
+      // registration Fluid no longer routes to, so it can go.
+      await prisma.fluidCallbackRegistration
+        .deleteMany({
+          where: { dri, uuid: { notIn: results.registeredUuids } },
+        })
+        .catch((error: unknown) => {
+          console.warn(
+            "[DropletInstalled] Could not prune superseded callback tokens:",
+            error instanceof Error ? error.message : error,
+          );
+        });
+    } else if (results.failed > 0) {
+      // Deliberately keeps every stored row. On a redelivery the failure is
+      // typically a 409 for a registration that is live and working, and whose
+      // token we already hold — deleting that row is precisely how a healthy
+      // installation gets broken.
+      console.warn(
+        `[DropletInstalled] Keeping existing callback tokens for ${dri}: ` +
+          "registration did not complete cleanly, so stored digests may still " +
+          "be the only copy of a live registration's token.",
+      );
+    }
+  }
 
   if (results.registeredUuids.length > 0) {
     await prisma.company.update({

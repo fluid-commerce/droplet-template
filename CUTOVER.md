@@ -33,18 +33,44 @@ route fails open by design, so an unauthenticated probe cannot tell verification
 working from verification broken. The webhook assertions are the ones with
 teeth.
 
-**2. One internal installation.** Repoint it, watch it, and be ready to put it
-back. Fluid enforces one registration per `definition_name` per owner, so this
-is a genuine switch and not a fan-out — there is no mirror mode to hide behind.
+**2. One internal installation.** Repoint it, watch it, put it back if needed.
 
-Repointing is delete-then-create, not update, because **an update does not
-return a `verification_token` and a create does**. The new registration's token
-is stored by the Next app as it creates it, which is also how that app ends up
-able to verify at all.
+```bash
+pnpm cutover status    acme                                  # read-only
+pnpm cutover repoint   acme --url https://<app>-next-...run.app --from https://<app>-...run.app
+APPLY=1 pnpm cutover repoint acme --url https://<app>-next-...run.app --from https://<app>-...run.app
+pnpm cutover status    acme                                  # confirm
+```
 
-There is a gap of a second or two where the definition has no registration and
-Fluid simply does not call. For most callbacks that is a no-op; for a tax
-callback it means a cart priced without tax. Do it off-peak.
+The repoint is an **update in place**, not a delete-then-create, and that is
+load-bearing. Fluid sets `verification_token` in `before_create` and never
+rotates it, `UpdateAction` accepts `url`, and `api_show` renders the `:shared`
+view which still carries the token. So the registration keeps its uuid and its
+token while only the url moves, and the tool reads the token back afterwards to
+store its digest.
+
+That removes both ways the obvious shape goes wrong. There is no window where
+the definition has no registration and Fluid quietly stops calling — which for
+a tax callback would be a cart priced without tax. And there is no create
+response whose loss would strand a live registration whose token was issued
+exactly once, to nobody.
+
+`--from` is only a hint. It lets the tool recognise a registration as ours
+before we hold any digest for it, which is the state every company is in on its
+first cutover. Where more than one registration could plausibly be ours, the
+tool stops and prints them rather than guessing: the listing is company-scoped,
+so another droplet installed for the same company can hold a registration with
+the same `definition_name`, and repointing theirs at us is an outage for them.
+
+**If a repoint fails halfway**, the url may have moved while the digest did not
+— the callback is then live and being refused behind a 200. Fix it with:
+
+```bash
+APPLY=1 pnpm cutover reconcile acme --url https://<app>-next-...run.app
+```
+
+`reconcile` reads the token back for anything at our url we hold no digest for.
+It is a read plus a write, not a destructive re-create.
 
 **3. Real companies, smallest first.** Same procedure. Stop at the first
 surprise.
@@ -56,8 +82,9 @@ reversible in seconds. Delete only once nothing has needed it.
 
 **Rails owns the schema.** Two migration tools against one database produces a
 schema neither app agrees with. Freeze Rails migrations during a cutover window,
-and keep Prisma read-shaped: `db pull`, never `db push`. `guard-db-push.sh`
-already blocks that against production.
+and keep Prisma read-shaped: `db pull`, never `db push`. There is no `db:push` guard in this
+repo — `pnpm db:push` will happily reshape the Rails schema, so treat that
+command as unavailable during a cutover window rather than as guarded.
 
 **Watch for encrypted columns.** Where Rails uses `encrypts`, Prisma reads the
 raw column and gets the base64 envelope. The droplet then reads every company as
@@ -66,6 +93,11 @@ set it up. This template does not encrypt anything; shipstation, avalara and
 sovos do, and each needs that verified against real stored config before it goes
 anywhere near a cutover.
 
-**A rollback is the same operation backwards.** Delete the Next registrations,
-re-create them against the Rails url. Keep the Rails service warm until you stop
-needing that.
+**A rollback is the same command with the urls swapped.**
+
+```bash
+APPLY=1 pnpm cutover repoint acme --url https://<app>-...run.app --from https://<app>-next-...run.app
+```
+
+Because the repoint is an update, the rollback is symmetric and has the same
+no-gap property. Keep the Rails service warm until you stop needing it.

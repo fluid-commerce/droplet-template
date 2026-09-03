@@ -20,6 +20,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # workflow_dispatch lets the caller choose ANY ref, and the deploy builds
+      # whatever that ref contains straight into the production project. The
+      # comparison happens in the `if:` expression and the ref is never
+      # interpolated into a shell command — a branch may legally be named
+      # `x";exit${IFS}0;#`, which inside a double-quoted `run:` would close the
+      # quote and turn the guard into a no-op.
+      - name: Refuse to deploy a ref other than main
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "::error::Production deploys run from refs/heads/main only."
+          exit 1
+
       - name: Checkout repo
         uses: actions/checkout@v4
 

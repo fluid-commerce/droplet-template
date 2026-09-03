@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_08_11_182801) do
+ActiveRecord::Schema[8.0].define(version: 2025_09_03_030000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -58,6 +58,17 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_11_182801) do
     t.index ["company_id"], name: "index_events_on_company_id"
     t.index ["identifier"], name: "index_events_on_identifier"
     t.index ["name"], name: "index_events_on_name"
+  end
+
+  create_table "fluid_callback_registrations", primary_key: "uuid", id: :string, force: :cascade do |t|
+    t.string "dri", null: false
+    t.string "definition_name", null: false
+    t.string "token_digest", null: false
+    t.string "url", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["dri"], name: "index_fluid_callback_registrations_on_dri"
+    t.index ["token_digest"], name: "index_fluid_callback_registrations_on_token_digest", unique: true
   end
 
   create_table "integration_settings", force: :cascade do |t|

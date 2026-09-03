@@ -55,9 +55,13 @@ check "webhook without a signature is refused" 401 \
       -H 'content-type: application/json' \
       -d '{"resource":"order","event":"created","company":{"fluid_shop":"smoke"}}')"
 
-# Still an auth failure, not a 400: the wrapper authenticates before it parses,
-# so a malformed body behind a missing signature must never reach the parser.
-check "unsigned webhook with a malformed body is refused as auth" 401 \
+# 400, NOT 401. The SDK wrapper reads and JSON.parses the body BEFORE it looks
+# at the signature (withFluidWebhook: onInvalidBody fires on a parse failure,
+# well above the verification block), so a malformed body is rejected as a bad
+# request and never reaches auth. This assertion previously demanded 401 on the
+# strength of a comment claiming the opposite order — it would have failed
+# against a correctly deployed service.
+check "webhook with a malformed body is a bad request" 400 \
   "$(code -X POST "$BASE/api/webhooks" \
       -H 'content-type: application/json' -d 'not json')"
 
@@ -77,10 +81,15 @@ check "callback route answers (fail-open, proves routing only)" 200 "$CB"
 
 CB_BODY=$(body -X POST "$BASE/api/callbacks/cart-item-added" \
       -H 'content-type: application/json' -d '{"cart":{"id":1}}')
-case "$CB_BODY" in
-  *success*) printf '  ok    %-48s %s\n' "callback returns the neutral body" "$CB_BODY" ;;
-  *) printf '  FAIL  %-48s %s\n' "callback returns the neutral body" "$CB_BODY"; fail=$((fail + 1)) ;;
-esac
+# Compared exactly, not with a substring match. `*success*` also matches
+# {"success":false} and an HTML error page that happens to contain the word —
+# which is precisely the kind of green that means nothing.
+if [ "$CB_BODY" = '{"success":true}' ]; then
+  printf '  ok    %-48s %s\n' "callback returns the neutral body" "$CB_BODY"
+else
+  printf '  FAIL  %-48s %s\n' "callback returns the neutral body" "$CB_BODY"
+  fail=$((fail + 1))
+fi
 
 echo
 if [ "$fail" -gt 0 ]; then
