@@ -60,13 +60,13 @@ ActiveRecord::Schema[8.0].define(version: 2025_09_03_030000) do
     t.index ["name"], name: "index_events_on_name"
   end
 
-  create_table "fluid_callback_registrations", primary_key: "uuid", id: :string, force: :cascade do |t|
-    t.string "dri", null: false
-    t.string "definition_name", null: false
-    t.string "token_digest", null: false
-    t.string "url", null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
+  create_table "fluid_callback_registrations", primary_key: "uuid", id: :text, force: :cascade do |t|
+    t.text "dri", null: false
+    t.text "definition_name", null: false
+    t.text "token_digest", null: false
+    t.text "url", null: false
+    t.datetime "created_at", default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.datetime "updated_at", default: -> { "CURRENT_TIMESTAMP" }, null: false
     t.index ["dri"], name: "index_fluid_callback_registrations_on_dri"
     t.index ["token_digest"], name: "index_fluid_callback_registrations_on_token_digest", unique: true
   end

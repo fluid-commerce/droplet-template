@@ -20,14 +20,28 @@ class CreateFluidCallbackRegistrations < ActiveRecord::Migration[8.0]
     # `id: false` with a string primary key: the SDK keys these rows by Fluid's
     # registration uuid, not by a local autoincrement. A bigint `id` here would
     # not match what Prisma declares as `@id`.
+    # `text`, not `string`. Prisma maps `String` to PostgreSQL `text`, while
+    # Rails' `t.string` is `varchar(255)`. The mismatch is invisible until a
+    # registration url exceeds 255 characters, at which point the insert fails
+    # and the SDK deletes the registration it just made.
     create_table :fluid_callback_registrations, id: false do |t|
-      t.string :uuid, null: false, primary_key: true
-      t.string :dri, null: false
-      t.string :definition_name, null: false
-      t.string :token_digest, null: false
-      t.string :url, null: false
+      t.text :uuid, null: false, primary_key: true
+      t.text :dri, null: false
+      t.text :definition_name, null: false
+      t.text :token_digest, null: false
+      t.text :url, null: false
 
-      t.timestamps
+      # Explicit database defaults, NOT bare `t.timestamps`.
+      #
+      # Rails' `t.timestamps` makes these NOT NULL with no default, because
+      # ActiveRecord always supplies them. Prisma declares
+      # `@default(now())` / `@updatedAt` and the SDK's store passes neither, so
+      # against a Rails-created table the insert would violate NOT NULL — the
+      # token would never be stored, and the registration code would delete the
+      # live Fluid registration it had just created. Defaulting them in the
+      # database makes the column correct for whichever ORM writes it.
+      t.datetime :created_at, null: false, default: -> { "CURRENT_TIMESTAMP" }
+      t.datetime :updated_at, null: false, default: -> { "CURRENT_TIMESTAMP" }
     end
 
     # Unique because the digest is how an inbound callback finds its

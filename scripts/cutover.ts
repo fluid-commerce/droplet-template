@@ -39,6 +39,7 @@ import { prisma } from "@/lib/db";
 import { createFluidClient, type FluidClient } from "@/lib/fluid";
 import { callbackStore } from "@/lib/callbacks";
 import { activeCallbacks } from "@/lib/callbacks/registration";
+import { dropletConfig } from "@/lib/config";
 import { tokenDigest } from "@fluid-app/droplet-sdk";
 
 const APPLY = process.env.APPLY === "1";
@@ -49,6 +50,53 @@ type Registration = {
   url: string;
   verification_token?: string;
 };
+
+/**
+ * Target origin + the path this registration should serve.
+ *
+ * Only the PATH of the configured url is used. These rows hold ABSOLUTE urls,
+ * and `new URL(absolute, base)` ignores the base entirely — so building the
+ * destination as `new URL(callback.url, targetUrl)` returned the url it already
+ * had. The tool updated each registration to its own current value, adopted its
+ * token, printed "moved", and exited zero having moved nothing.
+ */
+function destinationFor(configuredUrl: string, targetOrigin: string): string {
+  let path: string;
+  try {
+    const parsed = new URL(configuredUrl);
+    path = `${parsed.pathname}${parsed.search}`;
+  } catch {
+    path = configuredUrl.startsWith("/") ? configuredUrl : `/${configuredUrl}`;
+  }
+  return new URL(path, targetOrigin).toString();
+}
+
+type FluidWebhook = {
+  id: number | string;
+  resource: string;
+  event: string;
+  url: string;
+};
+
+/**
+ * The webhooks THIS droplet registered, as Fluid currently holds them.
+ *
+ * Matched on an exact expected url, for the same reason callbacks are: the
+ * listing is company-scoped, and another droplet subscribed to the same
+ * resource+event appears in it.
+ */
+function ourWebhooks(
+  webhooks: FluidWebhook[],
+  origins: string[],
+): FluidWebhook[] {
+  const enabled = dropletConfig.webhooks.filter((w) => w.enabled !== false);
+  const expected = origins.map((origin) => `${origin}/api/webhooks`);
+  return webhooks.filter(
+    (w) =>
+      expected.includes(w.url) &&
+      enabled.some((e) => e.resource === w.resource && e.event === w.event),
+  );
+}
 
 function fail(message: string): never {
   console.error(`\n${message}`);
@@ -164,11 +212,27 @@ async function status(handle: string) {
   console.log(`Fluid holds ${live.length} registration(s) for this company:\n`);
 
   for (const registration of live) {
-    const held = storedByUuid.has(registration.uuid);
-    // "verifiable" is the only question that matters. A registration we hold no
-    // digest for is one whose every callback we refuse behind a 200.
+    // THREE states, not two. "we hold a row" and "we hold this registration's
+    // current token" are different questions, and only the second predicts
+    // whether a callback will verify.
+    const label = !storedByUuid.has(registration.uuid)
+      ? "NO TOKEN"
+      : verifiablyHeld(registration, stored)
+        ? "ok      "
+        : "STALE   ";
     console.log(
-      `  ${held ? "ok    " : "NO TOKEN"} ${registration.definition_name.padEnd(24)} ${registration.url}`,
+      `  ${label} ${registration.definition_name.padEnd(24)} ${registration.url}`,
+    );
+  }
+
+  const stale = live.filter(
+    (r) => storedByUuid.has(r.uuid) && !verifiablyHeld(r, stored),
+  );
+  if (stale.length > 0) {
+    console.log(
+      `\n${stale.length} registration(s) are STALE: we hold a row, but its digest ` +
+        `is not this registration's current token. Those callbacks are being ` +
+        `refused behind a 200 right now. 'reconcile' re-reads them.`,
     );
   }
 
@@ -234,6 +298,28 @@ async function adoptToken(
 }
 
 /**
+ * Whether we hold the CURRENT token for this registration.
+ *
+ * NOT "is there a row with this uuid". A row holding the digest of a token that
+ * has since been replaced is indistinguishable by uuid from a correct one, and
+ * every callback against it is refused behind a 200 — the exact silent failure
+ * this tooling exists to surface. `api_index` and `api_show` return the live
+ * token, so the comparison costs nothing.
+ */
+function verifiablyHeld(
+  registration: Registration,
+  stored: { uuid: string; tokenDigest: string }[],
+): boolean {
+  const row = stored.find((r) => r.uuid === registration.uuid);
+  if (!row) return false;
+  // No token in the response means we cannot prove it either way. Treated as
+  // NOT held: assuming otherwise fails silently, re-adopting merely costs a
+  // call.
+  if (!registration.verification_token) return false;
+  return row.tokenDigest === tokenDigest(registration.verification_token);
+}
+
+/**
  * Picks the registration that is OURS for a definition.
  *
  * The listing is company-scoped, so another droplet installed for the same
@@ -249,15 +335,16 @@ async function adoptToken(
 function ourRegistration(
   candidates: Registration[],
   heldUuids: Set<string>,
-  knownOrigins: string[],
+  expectedUrls: string[],
 ): Registration | "ambiguous" | undefined {
   const held = candidates.filter((r) => heldUuids.has(r.uuid));
   if (held.length === 1) return held[0];
   if (held.length > 1) return "ambiguous";
 
-  const recognised = candidates.filter((r) =>
-    knownOrigins.some((origin) => r.url.startsWith(origin)),
-  );
+  // EXACT match, never a prefix. `startsWith(origin)` accepts
+  // `https://our-app.run.app.attacker.example/...`, and on a shared host it
+  // accepts a sibling droplet's path under the same origin.
+  const recognised = candidates.filter((r) => expectedUrls.includes(r.url));
   if (recognised.length === 1) return recognised[0];
   if (recognised.length > 1) return "ambiguous";
 
@@ -272,85 +359,157 @@ async function repoint(handle: string, targetUrl: string, fromUrl?: string) {
   const live = await fluidRegistrations(client);
   const stored = await storedFor(dri);
   const heldUuids = new Set(stored.map((row) => row.uuid));
-  const knownOrigins = [targetUrl, ...(fromUrl ? [fromUrl] : [])];
+  const active = await activeCallbacks();
+
+  // ---- PREFLIGHT ----------------------------------------------------------
+  // Every definition is resolved before ANY of them is mutated. Resolving as we
+  // went meant an ambiguity or an API error on the third definition was
+  // discovered with the first two already moved — leaving one company answering
+  // from two different apps inside a single checkout, which is a different
+  // price or tax in one basket.
+  type Plan = {
+    name: string;
+    timeoutInSeconds: number;
+    destination: string;
+    current?: Registration;
+    action: "update" | "create" | "noop";
+  };
+  const plans: Plan[] = [];
+
+  for (const callback of active) {
+    const destination = destinationFor(callback.url, targetUrl);
+    const expected = [
+      destination,
+      ...(fromUrl ? [destinationFor(callback.url, fromUrl)] : []),
+    ];
+    const candidates = live.filter((r) => r.definition_name === callback.name);
+    const current = ourRegistration(candidates, heldUuids, expected);
+
+    if (current === "ambiguous") {
+      fail(
+        `  FAIL  ${callback.name}: ${candidates.length} registrations match and ` +
+          `none is unambiguously ours. NOTHING has been changed. Resolve by hand:\n` +
+          candidates.map((r) => `    ${r.uuid}  ${r.url}`).join("\n"),
+      );
+    }
+
+    const settled =
+      current && current.url === destination && verifiablyHeld(current, stored);
+
+    plans.push({
+      name: callback.name,
+      timeoutInSeconds: callback.timeoutInSeconds,
+      destination,
+      current,
+      action: settled ? "noop" : current ? "update" : "create",
+    });
+  }
 
   console.log(
     `${APPLY ? "REPOINTING" : "DRY RUN for"} ${company.fluidShop} -> ${targetUrl}\n`,
   );
 
-  let moved = 0;
-
-  for (const callback of await activeCallbacks()) {
-    const destination = new URL(callback.url, targetUrl).toString();
-    const candidates = live.filter(
-      (r) => r.definition_name === callback.name,
-    );
-    const current = ourRegistration(candidates, heldUuids, knownOrigins);
-
-    if (current === "ambiguous") {
-      // Deliberately not resolved here. Repointing the wrong one takes down
-      // another droplet's callback, and there is no signal in the listing that
-      // distinguishes them once more than one is plausible.
-      fail(
-        `  FAIL  ${callback.name}: ${candidates.length} registrations match and ` +
-          `none is unambiguously ours. Resolve by hand:\n` +
-          candidates.map((r) => `    ${r.uuid}  ${r.url}`).join("\n"),
-      );
-    }
-
-    if (current && current.url === destination && heldUuids.has(current.uuid)) {
-      console.log(`  ok    ${callback.name}: already at ${destination}`);
-      continue;
-    }
-
-    if (!APPLY) {
+  if (!APPLY) {
+    for (const plan of plans) {
       console.log(
-        current
-          ? `  WOULD ${callback.name}: update ${current.uuid} ${current.url} -> ${destination}`
-          : `  WOULD ${callback.name}: create at ${destination} (nothing registered)`,
+        plan.action === "noop"
+          ? `  ok    ${plan.name}: already at ${plan.destination}`
+          : plan.action === "update"
+            ? `  WOULD ${plan.name}: update ${plan.current!.uuid} ${plan.current!.url} -> ${plan.destination}`
+            : `  WOULD ${plan.name}: create at ${plan.destination} (nothing registered)`,
       );
+    }
+    console.log(`\nDry run only. Re-run with APPLY=1.`);
+    return;
+  }
+
+  // ---- APPLY --------------------------------------------------------------
+  // Original urls are captured as we go, so a partial failure can be described
+  // exactly rather than reconstructed.
+  const done: { name: string; from: string }[] = [];
+
+  for (const plan of plans) {
+    if (plan.action === "noop") {
+      console.log(`  ok    ${plan.name}: already at ${plan.destination}`);
       continue;
     }
-
     try {
-      if (current) {
-        // In place. The registration keeps its uuid and its token — Fluid sets
-        // the token in before_create and never rotates it — so there is no
-        // moment when this definition has no registration, and no token to
-        // lose. This is the whole reason the cutover is not delete-create.
-        await client.updateCallback(current.uuid, { url: destination });
-        const url = await adoptToken(client, dri, current.uuid);
-        console.log(`  moved ${callback.name}: ${url} (${current.uuid})`);
+      if (plan.action === "update") {
+        const previous = plan.current!.url;
+        await client.updateCallback(plan.current!.uuid, {
+          url: plan.destination,
+        });
+        const url = await adoptToken(client, dri, plan.current!.uuid);
+        done.push({ name: plan.name, from: previous });
+        console.log(`  moved ${plan.name}: ${previous} -> ${url}`);
       } else {
         const uuid = await createAndPersist(
           client,
           dri,
-          callback.name,
-          destination,
-          callback.timeoutInSeconds,
+          plan.name,
+          plan.destination,
+          plan.timeoutInSeconds,
         );
-        console.log(`  created ${callback.name}: ${destination} (${uuid})`);
+        console.log(`  created ${plan.name}: ${plan.destination} (${uuid})`);
       }
-      moved++;
     } catch (error) {
-      // Stop rather than continue. After an update the registration is LIVE at
-      // the new url; if adopting its token failed, callbacks are arriving and
-      // being refused right now. Naming one definition is recoverable — running
-      // on and doing it to five is not.
+      const moved = done.length
+        ? done.map((d) => `      ${d.name}: at target, was ${d.from}`).join("\n")
+        : "      (none)";
       fail(
-        `  FAIL  ${callback.name}: ${error instanceof Error ? error.message : error}\n` +
-          `\n  If the url moved but the token was not stored, this callback is ` +
-          `being refused behind a 200 right now. Run:\n` +
-          `    APPLY=1 pnpm cutover reconcile ${handle} --url ${targetUrl}\n` +
-          `  or move it back with --url ${fromUrl ?? "<old url>"}.`,
+        `  FAIL  ${plan.name}: ${error instanceof Error ? error.message : error}\n` +
+          `\n  This company is now SPLIT across two apps. Already moved:\n${moved}\n` +
+          `\n  Put them back with:\n` +
+          `    APPLY=1 pnpm cutover repoint ${handle} --url ${fromUrl ?? "<old url>"} --from ${targetUrl}\n` +
+          `  then investigate before trying again.`,
       );
     }
   }
 
+  // Webhooks are part of the same routing table. A company whose callbacks
+  // moved but whose webhooks did not is half cut over: the async side goes on
+  // being handled by the app that no longer prices its carts.
+  try {
+    const webhooks = ((await client.listWebhooks())?.webhooks ??
+      []) as FluidWebhook[];
+    const origins = [targetUrl, ...(fromUrl ? [fromUrl] : [])];
+    const mine = ourWebhooks(webhooks, origins);
+    const destination = `${targetUrl}/api/webhooks`;
+
+    for (const webhook of mine) {
+      if (webhook.url === destination) {
+        console.log(`  ok    webhook ${webhook.resource}.${webhook.event}`);
+        continue;
+      }
+      // Fluid's update takes the whole registration, not a patch, so the
+      // fields we are NOT changing have to be sent back unchanged — omitting
+      // them would blank the subscription this webhook exists for.
+      await client.updateWebhook(String(webhook.id), {
+        resource: webhook.resource,
+        event: webhook.event,
+        url: destination,
+        auth_token: process.env.FLUID_WEBHOOK_AUTH_TOKEN ?? "",
+        active: true,
+      });
+      console.log(
+        `  moved webhook ${webhook.resource}.${webhook.event} -> ${destination}`,
+      );
+    }
+    if (mine.length === 0) {
+      console.log(
+        `  ATTN  no webhooks found at a url this tool recognises. If this ` +
+          `company has any, they still point somewhere else.`,
+      );
+    }
+  } catch (error) {
+    console.error(
+      `  ATTN  callbacks moved but webhooks did not: ` +
+        `${error instanceof Error ? error.message : error}`,
+    );
+  }
+
   console.log(
-    APPLY
-      ? `\n${moved} moved. Verify with: pnpm cutover status ${handle}`
-      : `\nDry run only. Re-run with APPLY=1.`,
+    `\nDone. Verify with: pnpm cutover status ${handle} --url ${targetUrl}`,
   );
 }
 
@@ -372,35 +531,54 @@ async function reconcile(handle: string, targetUrl: string) {
   const heldUuids = new Set(stored.map((row) => row.uuid));
   const active = await activeCallbacks();
 
-  // Scoped to OUR url. A registration on another host belongs to whatever
-  // serves that host, and adopting its token would let this app answer for it.
-  const ours = live.filter(
-    (registration) =>
-      registration.url.startsWith(targetUrl) &&
-      active.some((c) => c.name === registration.definition_name),
-  );
-  const broken = ours.filter((r) => !heldUuids.has(r.uuid));
+  // Resolved per definition against its EXACT expected destination, using the
+  // same one-candidate rule repoint uses.
+  //
+  // The previous version accepted anything whose url merely started with the
+  // target. On a shared host that adopts a sibling droplet's registration —
+  // and once adopted, every later repoint reads as ambiguous, because both
+  // uuids are now "held". A prefix test also accepts
+  // `https://target.example.attacker.test/...`.
+  const broken: Registration[] = [];
+  for (const callback of active) {
+    const destination = destinationFor(callback.url, targetUrl);
+    const candidates = live.filter((r) => r.definition_name === callback.name);
+    const ours = ourRegistration(candidates, heldUuids, [destination]);
+
+    if (ours === "ambiguous") {
+      fail(
+        `  FAIL  ${callback.name}: more than one registration could be ours. ` +
+          `Nothing has been changed. Resolve by hand:\n` +
+          candidates.map((r) => `    ${r.uuid}  ${r.url}`).join("\n"),
+      );
+    }
+    if (!ours || ours.url !== destination) continue;
+    if (verifiablyHeld(ours, stored)) continue;
+    broken.push(ours);
+  }
 
   console.log(
     `${APPLY ? "RECONCILING" : "DRY RUN for"} ${company.fluidShop}: ` +
-      `${broken.length} of ${ours.length} registration(s) at ${targetUrl} have no stored token\n`,
+      `${broken.length} registration(s) at ${targetUrl} are missing or stale\n`,
   );
 
   if (broken.length === 0) {
-    console.log("  Nothing to fix: every registration at this url is verifiable.");
+    console.log("  Nothing to fix: every registration at this url verifies.");
     return;
   }
 
   for (const registration of broken) {
     if (!APPLY) {
       console.log(
-        `  WOULD ${registration.definition_name}: adopt token for ${registration.uuid}`,
+        `  WOULD ${registration.definition_name}: re-read token for ${registration.uuid}`,
       );
       continue;
     }
     try {
       await adoptToken(client, dri, registration.uuid);
-      console.log(`  fixed ${registration.definition_name}: ${registration.uuid}`);
+      console.log(
+        `  fixed ${registration.definition_name}: ${registration.uuid}`,
+      );
     } catch (error) {
       fail(
         `  FAIL  ${registration.definition_name}: ${error instanceof Error ? error.message : error}`,
