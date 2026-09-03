@@ -9,6 +9,7 @@ export {
 export {
   withFluidWebhook,
   INSTALL_EVENT,
+  effectivePayload,
   type WebhookContext,
   type WebhookHandler,
   type WebhookRoutingHints,

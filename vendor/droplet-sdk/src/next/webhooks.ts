@@ -127,9 +127,61 @@ export const eventOf = (payload: unknown): string => {
   return "unknown";
 };
 
+/**
+ * The object the event was actually derived FROM.
+ *
+ * `eventOf` accepts several shapes; everything downstream — tenant hints,
+ * handler payload — has to look at the same object it chose, or the three
+ * disagree. They did: the route kept its own unwrap rule, and every shape where
+ * the two rules differed produced either a 500 from the handler or a 401 from
+ * the resolver, because hints were read from the outer envelope where no
+ * `company` exists.
+ *
+ * Precedence mirrors `eventOf` exactly, in the same order.
+ */
+export const effectivePayload = (body: unknown): unknown => {
+  if (!body || typeof body !== "object" || Array.isArray(body)) return body;
+  const record = body as Record<string, unknown>;
+
+  const nested = record["payload"];
+  const nestedIsObject =
+    typeof nested === "object" && nested !== null && !Array.isArray(nested);
+
+  // `name` wins in eventOf, so it wins here — even when root resource/event are
+  // also present.
+  const name = record["name"];
+  if (typeof name === "string" && name.length > 0) {
+    return nestedIsObject ? nested : record;
+  }
+
+  // Root pair next.
+  if (
+    typeof record["resource"] === "string" &&
+    typeof record["event"] === "string"
+  ) {
+    return record;
+  }
+
+  // Then anything eventOf would have taken from the nested object, including
+  // its `event`-only fallback.
+  if (nestedIsObject) {
+    const inner = nested as Record<string, unknown>;
+    if (typeof inner["resource"] === "string" || typeof inner["event"] === "string") {
+      return nested;
+    }
+  }
+
+  return record;
+};
+
 const readHints = (
-  payload: unknown,
+  body: unknown,
 ): Omit<WebhookRoutingHints, "payload" | "headers"> => {
+  // Hints come from the effective payload, not the outer envelope. An
+  // enveloped per-company webhook carries `company` inside `payload`, so
+  // reading the outer object found no tenant, offered no candidate secret, and
+  // failed closed with 401 for every such delivery.
+  const payload = effectivePayload(body);
   if (!payload || typeof payload !== "object") return {};
   const record = payload as Record<string, unknown>;
   const company = (record["company"] ?? {}) as Record<string, unknown>;

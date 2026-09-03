@@ -265,3 +265,30 @@ describe("payloadForHandler — the shape Fluid actually sent", () => {
     expect(payloadForHandler([{ company }])).toEqual([{ company }]);
   });
 });
+
+describe("effectivePayload — agreement with the SDK's eventOf", () => {
+  // These are the shapes eventOf accepts that a hand-written unwrap rule got
+  // wrong. Both consumers — the tenant-hint reader and the handler — now take
+  // the object eventOf derived the event from, so there is one rule rather than
+  // two that drift.
+  const company = { fluid_shop: "acme" };
+
+  it("gives `name` precedence over a root resource/event pair, as eventOf does", async () => {
+    const { payloadForHandler } = await import("@/app/api/webhooks/route");
+    expect(
+      payloadForHandler({
+        name: "droplet_installed",
+        resource: "ignored",
+        event: "ignored",
+        payload: { company },
+      }),
+    ).toEqual({ company });
+  });
+
+  it("follows eventOf's nested `event`-only fallback", async () => {
+    const { payloadForHandler } = await import("@/app/api/webhooks/route");
+    expect(
+      payloadForHandler({ payload: { event: "droplet.installed", company } }),
+    ).toEqual({ event: "droplet.installed", company });
+  });
+});

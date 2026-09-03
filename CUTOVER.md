@@ -99,7 +99,25 @@ The failure message prints the exact rollback command, including
 **3. Real companies, smallest first.** Same procedure. Stop at the first
 surprise.
 
-**4. Retire Rails.** Min-instances to 0 first and leave it a while — that is
+**4. Move the droplet-level webhooks.** `cutover repoint` moves one company's
+callbacks and its per-company webhooks. It does NOT move the two droplet-level
+lifecycle registrations — `droplet.installed` and `droplet.uninstalled` — which
+live on the droplet record itself, not on any installation, and still point at
+Rails.
+
+Nothing surfaces this: every company can be fully cut over and working while
+the next install or uninstall still goes to Rails. Delete Rails first and those
+events are simply lost.
+
+In Fluid's droplet settings, update `fluid_webhook.url` to
+`https://<app>-next-...run.app/api/webhooks` and press **Update Droplet**. Then
+confirm the active callback configuration points at the Next app too, so a NEW
+installation registers its callbacks there rather than back onto Rails.
+
+Do this only once every company has been repointed — it is global, not
+per-tenant, and there is no partial version of it.
+
+**5. Retire Rails.** Min-instances to 0 first and leave it a while — that is
 reversible in seconds. Delete only once nothing has needed it.
 
 ## Rules while both apps are live
