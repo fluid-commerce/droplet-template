@@ -42,11 +42,13 @@ export async function findCompanyForPayload(payload: CompanyIdentifiers) {
     if (match) return match;
   }
 
-  if (company.company_droplet_uuid) {
-    return prisma.company.findFirst({
-      where: { companyDropletUuid: company.company_droplet_uuid },
-    });
-  }
-
+  // `company_droplet_uuid` is DELIBERATELY not a fallback.
+  //
+  // It identifies the DROPLET, and every installation of this droplet carries
+  // the same value — so `findFirst` on it returns an arbitrary tenant, not the
+  // one the event is about. A correctly signed `droplet.uninstalled` carrying
+  // only that field would therefore deactivate some other company and delete
+  // its callback registrations. Tenant selection must use a tenant-specific
+  // identifier or fail.
   return null;
 }

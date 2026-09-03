@@ -91,11 +91,50 @@ else
   fail=$((fail + 1))
 fi
 
+# The assertions above prove the service REFUSES what it should. They cannot
+# prove it ACCEPTS what it should: deploy with FLUID_WEBHOOK_AUTH_TOKEN absent
+# or wrong and every one of them still passes, while every genuine signed
+# install and uninstall is also refused. So if the secret is available, send a
+# correctly signed lifecycle event and require it NOT to be a 401.
+#
+#   FLUID_WEBHOOK_AUTH_TOKEN=... scripts/smoke-next.sh https://...
+#
+# 401 means verification is rejecting real Fluid traffic. Anything else — 202,
+# 204, even a 500 from the handler — proves the signature was accepted, which is
+# the only thing this check is about.
+if [ -n "${FLUID_WEBHOOK_AUTH_TOKEN:-}" ]; then
+  BODY='{"name":"droplet_installed","payload":{"company":{"fluid_shop":"smoke","name":"Smoke","fluid_company_id":0,"droplet_uuid":"smoke","authentication_token":"smoke"}}}'
+  TS=$(date +%s)
+  SIG=$(printf '%s.%s' "$TS" "$BODY" \
+    | openssl dgst -sha256 -hmac "$FLUID_WEBHOOK_AUTH_TOKEN" \
+    | sed 's/^.*= //')
+  SIGNED=$(code -X POST "$BASE/api/webhooks" \
+    -H 'content-type: application/json' \
+    -H "X-Fluid-Timestamp: $TS" \
+    -H "X-Fluid-Signature: $SIG" \
+    -d "$BODY")
+  if [ "$SIGNED" = "401" ]; then
+    printf '  FAIL  %-48s %s\n' "signed lifecycle webhook is accepted" "$SIGNED"
+    fail=$((fail + 1))
+  else
+    printf '  ok    %-48s %s\n' "signed lifecycle webhook is accepted" "$SIGNED"
+  fi
+else
+  printf '  SKIP  %-48s %s\n' "signed lifecycle webhook is accepted" \
+    "set FLUID_WEBHOOK_AUTH_TOKEN to check"
+fi
+
 echo
 if [ "$fail" -gt 0 ]; then
   echo "$fail check(s) failed — do not repoint any installation at this service."
   exit 1
 fi
-echo "Passed. The service is up and refusing unsigned webhooks."
+if [ -n "${FLUID_WEBHOOK_AUTH_TOKEN:-}" ]; then
+  echo "Passed. The service refuses unsigned webhooks AND accepts a signed one."
+else
+  echo "Passed, but only the refusal half was checked — nothing here proves a"
+  echo "genuine signed webhook would be accepted. Re-run with"
+  echo "FLUID_WEBHOOK_AUTH_TOKEN set before repointing anything."
+fi
 echo "This does NOT establish that a signed callback would be accepted;"
 echo "cut an internal installation over first and watch it."

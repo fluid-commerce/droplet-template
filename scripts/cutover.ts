@@ -379,7 +379,12 @@ function ourRegistration(
   return undefined;
 }
 
-async function repoint(handle: string, targetUrl: string, fromUrl?: string) {
+async function repoint(
+  handle: string,
+  targetUrl: string,
+  fromUrl?: string,
+  webhookPath = "/api/webhooks",
+) {
   const company = await loadCompany(handle);
   const dri = company.dropletInstallationUuid!;
   const client = createFluidClient(company.authenticationToken);
@@ -437,7 +442,13 @@ async function repoint(handle: string, targetUrl: string, fromUrl?: string) {
   // mutated. They are part of the same routing unit: a company whose callbacks
   // moved and whose webhooks did not is half cut over, and finding that out
   // afterwards means finding it out too late.
-  const webhookDestination = `${targetUrl}/api/webhooks`;
+  // NOT hardcoded to the Next path. Rails serves `POST /webhook` and this app
+  // serves `POST /api/webhooks`, so a ROLLBACK that always builds the Next path
+  // would move every webhook to `https://rails/api/webhooks` — a route Rails
+  // does not have, and every subsequent delivery 404s. The direction cannot be
+  // inferred from the urls, so it is stated: CUTOVER.md's rollback passes
+  // `--webhook-path /webhook`.
+  const webhookDestination = `${targetUrl}${webhookPath}`;
   let webhookPlans: FluidWebhook[] = [];
   try {
     const webhooks = ((await client.listWebhooks())?.webhooks ??

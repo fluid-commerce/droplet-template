@@ -165,9 +165,24 @@ export async function handleDropletInstalled(payload: unknown): Promise<void> {
   }
 
   if (results.registeredUuids.length > 0) {
+    // MERGED, not replaced. Delivery is at-least-once and registration is
+    // per-callback, so a retry after a partial success registers only what
+    // failed the first time — replacing the list would drop the uuid of the
+    // callback that succeeded on the earlier attempt. Uninstall cleanup reads
+    // this list, so that callback would then be left live at Fluid while its
+    // digest is deleted and its company deactivated: every one of its calls
+    // refused behind a 200, with nothing pointing at the cause.
+    const existing = Array.isArray(company.installedCallbackIds)
+      ? (company.installedCallbackIds as unknown[]).filter(
+          (id): id is string => typeof id === "string",
+        )
+      : [];
+    const merged = Array.from(
+      new Set([...existing, ...results.registeredUuids]),
+    );
     await prisma.company.update({
       where: { id: company.id },
-      data: { installedCallbackIds: results.registeredUuids },
+      data: { installedCallbackIds: merged },
     });
   }
 

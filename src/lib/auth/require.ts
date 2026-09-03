@@ -9,6 +9,7 @@
 
 import { redirect } from "next/navigation";
 
+import { prisma } from "@/lib/db";
 import { auth } from "@/auth";
 import { can, type Action, type Subject } from "@/lib/permissions";
 
@@ -22,10 +23,31 @@ export async function currentUser(): Promise<CurrentUser | null> {
   const session = await auth();
   if (!session?.user) return null;
 
+  // Permissions are re-read from the database, NOT taken from the JWT.
+  //
+  // The token is issued at sign-in and carries whatever the user had then, so
+  // trusting it means removing an admin's permissions — or deleting the
+  // account outright — leaves their existing cookie authorising every admin
+  // operation until it expires. Rails/Devise loads `current_user` per request
+  // and does not have that gap; a port that reintroduces it is a regression in
+  // an admin console.
+  //
+  // A row that has disappeared returns null, so a deleted user is signed out on
+  // their next request rather than at token expiry.
+  const user = await prisma.user.findUnique({
+    where: { id: Number(session.user.id) },
+    select: { id: true, email: true, permissionSets: true },
+  });
+  if (!user) return null;
+
   return {
-    id: session.user.id,
-    email: session.user.email,
-    permissionSets: session.user.permissionSets ?? [],
+    id: String(user.id),
+    email: user.email,
+    permissionSets: Array.isArray(user.permissionSets)
+      ? (user.permissionSets as unknown[]).filter(
+          (p): p is string => typeof p === "string",
+        )
+      : [],
   };
 }
 

@@ -102,8 +102,16 @@ anywhere near a cutover.
 **A rollback is the same command with the urls swapped.**
 
 ```bash
-APPLY=1 pnpm cutover repoint acme --url https://<app>-...run.app --from https://<app>-next-...run.app
+APPLY=1 pnpm cutover repoint acme \
+  --url https://<app>-...run.app \
+  --from https://<app>-next-...run.app \
+  --webhook-path /webhook
 ```
+
+`--webhook-path /webhook` is required going back. Rails serves `POST /webhook`
+while the Next app serves `POST /api/webhooks`, and the tool will not guess the
+direction — without it, every webhook would be moved to a Rails route that does
+not exist and each delivery would 404.
 
 Because the repoint is an update, the rollback is symmetric and has the same
 no-gap property. Keep the Rails service warm until you stop needing it.
