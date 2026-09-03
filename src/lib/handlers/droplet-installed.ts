@@ -69,13 +69,32 @@ export async function handleDropletInstalled(payload: unknown): Promise<void> {
     where: { fluidShop: data.fluid_shop },
   });
 
+  // Rails assigns only the keys the payload actually carries:
+  //   company.assign_attributes(company_attributes.slice("fluid_shop", "name",
+  //     "fluid_company_id", "authentication_token",
+  //     "webhook_verification_token", "droplet_installation_uuid"))
+  // `Hash#slice` drops absent keys, so an omitted value LEAVES THE STORED ONE
+  // ALONE. Writing `?? null` instead erased it — and `droplet_installation_uuid`
+  // is what every stored callback token is bound to, so a reinstall payload
+  // that omits it would leave tenant resolution unable to find the company and
+  // every callback answering a neutral 200 forever, with nothing raised.
+  //
+  // `droplet_uuid` and `active` are NOT sliced in Rails — they are assigned
+  // unconditionally, and `droplet_uuid` is `fetch`ed, so its absence raises.
+  // `fluid_shop`, `name` and `authentication_token` are required by the schema
+  // above, so they are always present and are assigned unconditionally. The two
+  // that Fluid may omit are the ones that must not be overwritten with null.
   const attributes = {
     fluidShop: data.fluid_shop,
     name: data.name,
-    fluidCompanyId,
     authenticationToken: data.authentication_token,
-    webhookVerificationToken: data.webhook_verification_token ?? null,
-    dropletInstallationUuid: data.droplet_installation_uuid ?? null,
+    ...(data.webhook_verification_token === undefined
+      ? {}
+      : { webhookVerificationToken: data.webhook_verification_token }),
+    ...(data.droplet_installation_uuid === undefined
+      ? {}
+      : { dropletInstallationUuid: data.droplet_installation_uuid }),
+    fluidCompanyId,
     companyDropletUuid: data.droplet_uuid,
     active: true,
     // A reinstall arrives as a fresh `droplet.installed`. Clearing this is what

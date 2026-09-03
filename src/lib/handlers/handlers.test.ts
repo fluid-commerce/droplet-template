@@ -113,6 +113,43 @@ describe("handleDropletInstalled", () => {
     expect(update.data.installedCallbackIds).toEqual(["cbr_1"]);
   });
 
+  // Rails assigns only the keys the payload carries
+  // (assign_attributes(company_attributes.slice(...)) — Hash#slice drops absent
+  // keys). Writing null for an omitted key erases the value every stored
+  // callback token is bound to, and the failure is silent: tenant resolution
+  // then finds no company and every callback answers a neutral 200.
+  it("leaves an omitted droplet_installation_uuid alone instead of nulling it", async () => {
+    mockPrisma.company.findFirst.mockResolvedValue(companyFixture());
+    const { droplet_installation_uuid: _omitted, ...company } =
+      installPayload.company;
+
+    await handleDropletInstalled({ company });
+
+    const data = mockPrisma.company.update.mock.calls[0][0].data;
+    expect("dropletInstallationUuid" in data).toBe(false);
+  });
+
+  it("leaves an omitted webhook_verification_token alone instead of nulling it", async () => {
+    mockPrisma.company.findFirst.mockResolvedValue(companyFixture());
+    const { webhook_verification_token: _omitted, ...company } =
+      installPayload.company;
+
+    await handleDropletInstalled({ company });
+
+    const data = mockPrisma.company.update.mock.calls[0][0].data;
+    expect("webhookVerificationToken" in data).toBe(false);
+  });
+
+  it("still writes both when the payload carries them", async () => {
+    mockPrisma.company.findFirst.mockResolvedValue(companyFixture());
+
+    await handleDropletInstalled(installPayload);
+
+    const data = mockPrisma.company.update.mock.calls[0][0].data;
+    expect(data.dropletInstallationUuid).toBe("dri_acme");
+    expect(data.webhookVerificationToken).toBe("wvt_acme");
+  });
+
   it("updates the existing row rather than duplicating it", async () => {
     mockPrisma.company.findFirst.mockResolvedValue(companyFixture());
 
