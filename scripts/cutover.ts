@@ -529,7 +529,8 @@ async function repoint(
         `  FAIL  ${plan.name}: ${error instanceof Error ? error.message : error}\n` +
           `\n  This company is now SPLIT across two apps. Already moved:\n${moved}\n` +
           `\n  Put them back with:\n` +
-          `    APPLY=1 pnpm cutover repoint ${handle} --url ${fromUrl ?? "<old url>"} --from ${targetUrl}\n` +
+          `    APPLY=1 pnpm cutover repoint ${handle} --url ${fromUrl ?? "<old url>"} ` +
+          `--from ${targetUrl} --webhook-path ${webhookPath === "/api/webhooks" ? "/webhook" : "/api/webhooks"}\n` +
           `  then investigate before trying again.`,
       );
     }
@@ -566,7 +567,8 @@ async function repoint(
         `  FAIL  webhook ${label}: ${error instanceof Error ? error.message : error}\n` +
           `\n  This company is now SPLIT. Already moved:\n${callbacks}\n${webhooksMoved}\n` +
           `\n  Put them back with:\n` +
-          `    APPLY=1 pnpm cutover repoint ${handle} --url ${fromUrl ?? "<old url>"} --from ${targetUrl}`,
+          `    APPLY=1 pnpm cutover repoint ${handle} --url ${fromUrl ?? "<old url>"} ` +
+          `--from ${targetUrl} --webhook-path ${webhookPath === "/api/webhooks" ? "/webhook" : "/api/webhooks"}`,
       );
     }
   }
@@ -659,12 +661,17 @@ async function main() {
   // callbacks Rails registered.
   const fromFlag = rest.indexOf("--from");
   const fromUrl = fromFlag >= 0 ? rest[fromFlag + 1]?.replace(/\/$/, "") : undefined;
+  // Required when rolling back to Rails, which serves POST /webhook while this
+  // app serves POST /api/webhooks. The direction cannot be inferred from the
+  // urls, so it is stated rather than guessed.
+  const pathFlag = rest.indexOf("--webhook-path");
+  const webhookPath = pathFlag >= 0 ? rest[pathFlag + 1] : "/api/webhooks";
 
   if (!command || !handle) {
     fail(
       "Usage:\n" +
         "  pnpm cutover status    <fluid_shop>\n" +
-        "  APPLY=1 pnpm cutover repoint   <fluid_shop> --url https://... [--from https://rails-url]\n" +
+        "  APPLY=1 pnpm cutover repoint   <fluid_shop> --url https://... [--from https://old] [--webhook-path /webhook]\n" +
         "  APPLY=1 pnpm cutover reconcile <fluid_shop> --url https://...",
     );
   }
@@ -675,7 +682,7 @@ async function main() {
       break;
     case "repoint":
       if (!url) fail("repoint needs --url or FLUID_DROPLET_URL.");
-      await repoint(handle, url.replace(/\/$/, ""), fromUrl);
+      await repoint(handle, url.replace(/\/$/, ""), fromUrl, webhookPath);
       break;
     case "reconcile":
       if (!url) fail("reconcile needs --url or FLUID_DROPLET_URL.");

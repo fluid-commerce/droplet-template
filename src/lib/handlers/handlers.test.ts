@@ -218,3 +218,18 @@ describe("handleDropletUninstalled", () => {
     expect(mockPrisma.company.update).not.toHaveBeenCalled();
   });
 });
+
+describe("handleDropletInstalled — envelope shapes", () => {
+  it("accepts the enveloped delivery shape Fluid also sends", async () => {
+    // Fluid sends BOTH `{resource, event, company}` and
+    // `{name, payload: {company}}`. The route used to forward the outer object
+    // unchanged, so the enveloped form reached this handler without a top-level
+    // `company`, threw, and answered 500 — which Fluid retries forever. The
+    // smoke test could not catch it, because it only failed on a 401.
+    //
+    // Asserted at the handler boundary: the route now unwraps, so what arrives
+    // here is the inner object either way.
+    await handleDropletInstalled(installPayload);
+    expect(registerCallbacksForCompany).toHaveBeenCalled();
+  });
+});

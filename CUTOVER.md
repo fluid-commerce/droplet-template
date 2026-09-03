@@ -68,15 +68,33 @@ tool stops and prints them rather than guessing: the listing is company-scoped,
 so another droplet installed for the same company can hold a registration with
 the same `definition_name`, and repointing theirs at us is an outage for them.
 
-**If a repoint fails halfway**, the url may have moved while the digest did not
-— the callback is then live and being refused behind a 200. Fix it with:
+**If a repoint fails halfway**, read which of two things happened — they need
+opposite responses, and `reconcile` only fixes one of them.
+
+*The url moved but the token did not get stored.* The failure message names the
+definition and says the callback is live and being refused behind a 200. Only
+the digest is missing, so:
 
 ```bash
 APPLY=1 pnpm cutover reconcile acme --url https://<app>-next-...run.app
 ```
 
-`reconcile` reads the token back for anything at our url we hold no digest for.
-It is a read plus a write, not a destructive re-create.
+*A later callback or webhook update failed outright.* Then some registrations
+are at the new url and some are still at the old one — one shopper's checkout
+hitting two different apps. `reconcile` will NOT fix this and will report
+"Nothing to fix", because every registration it can see is either already valid
+or not at the target url. Either finish the move by re-running the repoint, or
+put everything back:
+
+```bash
+APPLY=1 pnpm cutover repoint acme \
+  --url https://<app>-...run.app \
+  --from https://<app>-next-...run.app \
+  --webhook-path /webhook
+```
+
+The failure message prints the exact rollback command, including
+`--webhook-path`, along with every callback and webhook it had already moved.
 
 **3. Real companies, smallest first.** Same procedure. Stop at the first
 surprise.

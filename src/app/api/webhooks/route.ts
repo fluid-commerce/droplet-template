@@ -47,6 +47,23 @@ initializeHandlers();
  */
 const BOOTSTRAP_EVENTS = [INSTALL_EVENT, "droplet.uninstalled"];
 
+/**
+ * The object a handler should run on.
+ *
+ * Mirrors what Fluid's own envelope means: when a delivery wraps its body in
+ * `payload`, that inner object is the event. Anything else is passed through
+ * untouched.
+ */
+function unwrapPayload(payload: unknown): unknown {
+  if (typeof payload !== "object" || payload === null) return payload;
+  const outer = payload as Record<string, unknown>;
+  const inner = outer.payload;
+  if (typeof inner === "object" && inner !== null && !Array.isArray(inner)) {
+    return inner;
+  }
+  return payload;
+}
+
 export const POST = withFluidWebhook(
   {
     name: "droplet",
@@ -95,7 +112,16 @@ export const POST = withFluidWebhook(
     }
 
     try {
-      const handled = await routeEvent(event, payload);
+      // Handlers are given the INNER payload, not the outer envelope.
+      //
+      // Fluid sends lifecycle events in two shapes — root-style
+      // `{resource, event, company}` and enveloped
+      // `{name, payload: {company}}` — and the SDK recognises both when it
+      // decides what `event` is. But forwarding the outer object unchanged
+      // means an enveloped delivery reaches a handler whose schema requires
+      // `company` at the top level: it throws, the route answers 500, and
+      // Fluid retries the same shape forever.
+      const handled = await routeEvent(event, unwrapPayload(payload));
       return new NextResponse(null, { status: handled ? 202 : 204 });
     } catch (error) {
       // The payload is never logged here: it carries authentication_token and
