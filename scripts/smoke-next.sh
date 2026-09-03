@@ -103,7 +103,19 @@ fi
 # 204, even a 500 from the handler — proves the signature was accepted, which is
 # the only thing this check is about.
 if [ -n "${FLUID_WEBHOOK_AUTH_TOKEN:-}" ]; then
-  BODY='{"name":"droplet_installed","payload":{"company":{"fluid_shop":"smoke","name":"Smoke","fluid_company_id":0,"droplet_uuid":"smoke","authentication_token":"smoke"}}}'
+  # `droplet.uninstalled`, NOT `droplet.installed`, and this matters.
+  #
+  # A signed install would WRITE: handleDropletInstalled only bails early when a
+  # configured droplet uuid fails to match, and when none is configured it warns
+  # and carries on — creating a `companies` row named "Smoke" with
+  # `authentication_token: "smoke"` in whatever database the service is pointed
+  # at. A smoke test must not be able to do that.
+  #
+  # Uninstall is also a bootstrap event, so it proves exactly the same thing
+  # about the signature, but `handleDropletUninstalled` resolves the company
+  # first and returns when it finds none. With a DRI that matches nothing, it is
+  # provably write-free.
+  BODY='{"resource":"droplet","event":"uninstalled","company":{"droplet_installation_uuid":"dri_smoke_probe_no_such_installation"}}'
   TS=$(date +%s)
   SIG=$(printf '%s.%s' "$TS" "$BODY" \
     | openssl dgst -sha256 -hmac "$FLUID_WEBHOOK_AUTH_TOKEN" \

@@ -61,6 +61,15 @@ host. The tool knows both and moves them with the callbacks — and refuses to
 touch anything if it cannot first list them, because moving callbacks without
 knowing where the webhooks point is how a company ends up half cut over.
 
+`--callback-path` is required when the two apps serve the callback on different
+paths, which is the normal case for a Rails→Next move. The `callbacks` table
+row is operator-typed and holds the *Rails* path, so without it the repoint
+would register the Next app at a route it does not serve — and for a callback
+Fluid rescues into a neutral response, the symptom is not an error but a
+silently missing result at checkout. It is a single override for every
+definition; with more than one callback on different paths, repoint them in
+separate runs.
+
 `--from` is only a hint. It lets the tool recognise a registration as ours
 before we hold any digest for it, which is the state every company is in on its
 first cutover. Where more than one registration could plausibly be ours, the

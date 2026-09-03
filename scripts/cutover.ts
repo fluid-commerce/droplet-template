@@ -131,6 +131,46 @@ function fail(message: string): never {
   process.exit(1);
 }
 
+/**
+ * A path flag, validated.
+ *
+ * `${origin}${path}` with an unvalidated path is a host-substitution hole:
+ * `--webhook-path '@evil.example/x'` produces `https://target@evil.example/x`,
+ * whose HOST is evil.example — the target origin becomes userinfo. A leading
+ * `//` does the same thing.
+ */
+function normalisePath(flag: string, value: string): string {
+  if (!value.startsWith("/") || value.startsWith("//")) {
+    fail(
+      `${flag} must be an absolute path beginning with a single "/"; got "${value}".`,
+    );
+  }
+  return value;
+}
+
+/**
+ * An origin flag, validated.
+ *
+ * A query or fragment survives concatenation — `https://h/?x=1` plus
+ * `/api/webhooks` is `https://h/?x=1/api/webhooks`, which registers a url
+ * nothing serves.
+ */
+function normaliseOrigin(flag: string, value: string): string {
+  let parsed: URL;
+  try {
+    parsed = new URL(value);
+  } catch {
+    fail(`${flag} is not a valid url; got "${value}".`);
+  }
+  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+    fail(`${flag} must be http(s); got "${value}".`);
+  }
+  if (parsed.search || parsed.hash) {
+    fail(`${flag} must not carry a query or fragment; got "${value}".`);
+  }
+  return value.replace(/\/$/, "");
+}
+
 async function loadCompany(handle: string) {
   const company = await prisma.company.findFirst({
     where: { OR: [{ fluidShop: handle }, { id: Number(handle) || -1 }] },
@@ -384,6 +424,7 @@ async function repoint(
   targetUrl: string,
   fromUrl?: string,
   webhookPath = "/api/webhooks",
+  callbackPath?: string,
 ) {
   const company = await loadCompany(handle);
   const dri = company.dropletInstallationUuid!;
@@ -410,9 +451,23 @@ async function repoint(
   const plans: Plan[] = [];
 
   for (const callback of active) {
-    const destination = destinationFor(callback.url, targetUrl);
+    // The stored `callbacks.url` is operator-typed and, during a Rails→Next
+    // move, holds the RAILS path. Taking the path from it and swapping only the
+    // origin registers the Next app at a route it does not serve — and for a
+    // callback Fluid rescues into a neutral response, the symptom is not an
+    // error but a silently missing result at checkout.
+    //
+    // So the destination path is stated when the two apps differ. This is a
+    // single override for every definition; with more than one callback on
+    // different paths, repoint them in separate runs.
+    const destination = callbackPath
+      ? new URL(callbackPath, targetUrl).toString()
+      : destinationFor(callback.url, targetUrl);
+    // Recognition still accepts the stored path on either origin, so a first
+    // cutover finds the Rails registration it holds no digest for.
     const expected = [
       destination,
+      destinationFor(callback.url, targetUrl),
       ...(fromUrl ? [destinationFor(callback.url, fromUrl)] : []),
     ];
     const candidates = live.filter((r) => r.definition_name === callback.name);
@@ -701,23 +756,35 @@ async function reconcile(handle: string, targetUrl: string) {
 async function main() {
   const [command, handle, ...rest] = process.argv.slice(2);
   const urlFlag = rest.indexOf("--url");
-  const url = urlFlag >= 0 ? rest[urlFlag + 1] : process.env.FLUID_DROPLET_URL;
+  const rawUrl =
+    urlFlag >= 0 ? rest[urlFlag + 1] : process.env.FLUID_DROPLET_URL;
+  const url = rawUrl ? normaliseOrigin("--url", rawUrl) : undefined;
   // Optional, and only a hint: it lets a registration be recognised as ours
   // when we hold no digest for it yet — the first cutover of a company whose
   // callbacks Rails registered.
   const fromFlag = rest.indexOf("--from");
-  const fromUrl = fromFlag >= 0 ? rest[fromFlag + 1]?.replace(/\/$/, "") : undefined;
+  const rawFrom = fromFlag >= 0 ? rest[fromFlag + 1] : undefined;
+  const fromUrl = rawFrom ? normaliseOrigin("--from", rawFrom) : undefined;
   // Required when rolling back to Rails, which serves POST /webhook while this
   // app serves POST /api/webhooks. The direction cannot be inferred from the
   // urls, so it is stated rather than guessed.
+  const cbPathFlag = rest.indexOf("--callback-path");
+  const callbackPath =
+    cbPathFlag >= 0
+      ? normalisePath("--callback-path", rest[cbPathFlag + 1] ?? "")
+      : undefined;
   const pathFlag = rest.indexOf("--webhook-path");
-  const webhookPath = pathFlag >= 0 ? rest[pathFlag + 1] : "/api/webhooks";
+  const webhookPath =
+    pathFlag >= 0
+      ? normalisePath("--webhook-path", rest[pathFlag + 1] ?? "")
+      : "/api/webhooks";
 
   if (!command || !handle) {
     fail(
       "Usage:\n" +
         "  pnpm cutover status    <fluid_shop>\n" +
-        "  APPLY=1 pnpm cutover repoint   <fluid_shop> --url https://... [--from https://old] [--webhook-path /webhook]\n" +
+        "  APPLY=1 pnpm cutover repoint   <fluid_shop> --url https://... [--from https://old]\n" +
+        "                                 [--webhook-path /webhook] [--callback-path /api/callbacks/x]\n" +
         "  APPLY=1 pnpm cutover reconcile <fluid_shop> --url https://...",
     );
   }
@@ -728,11 +795,11 @@ async function main() {
       break;
     case "repoint":
       if (!url) fail("repoint needs --url or FLUID_DROPLET_URL.");
-      await repoint(handle, url.replace(/\/$/, ""), fromUrl, webhookPath);
+      await repoint(handle, url, fromUrl, webhookPath, callbackPath);
       break;
     case "reconcile":
       if (!url) fail("reconcile needs --url or FLUID_DROPLET_URL.");
-      await reconcile(handle, url.replace(/\/$/, ""));
+      await reconcile(handle, url);
       break;
     default:
       fail(`Unknown command "${command}".`);
