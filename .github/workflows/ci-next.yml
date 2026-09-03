@@ -142,10 +142,3 @@ jobs:
             exit 1
           fi
           echo "/api/webhooks is mounted (unsigned POST answered $code)"
-            fi
-            sleep 1
-          done
-
-          echo "::error::container never answered /api/health within 30s"
-          docker logs next-boot
-          exit 1
