@@ -24,9 +24,21 @@ no double-processing.
 
 ## The sequence
 
-**0. Deploy.** Run `deploy next`. It builds `Dockerfile.next` and deploys the
-`<app>-next` Cloud Run service. Nothing points at it, so this changes nothing —
-that is the property worth having.
+**0. Deploy.** The `<app>-next` Cloud Run service is created **once, by hand** —
+`cloudbuild-next.yml` runs `services update`, not `deploy`, so that the pipeline
+cannot invent configuration and a missing service fails loudly instead of coming
+up wrong. Create it with the same `DATABASE_URL` and Fluid credentials as the
+Rails service, plus:
+
+| Variable | Why |
+|---|---|
+| `FLUID_DROPLET_URL` | this service's own url — it is what the app registers |
+| `AUTH_SECRET` | Auth.js session signing |
+| `AUTH_TRUST_HOST=true` | **required on Cloud Run.** Auth.js v5 refuses to trust a proxied `Host` header without it and rejects sign-in with `UntrustedHost`. Every other route works, so the symptom is "admin login is broken" long after deploy, not a failed deploy. |
+
+Then run `deploy next`. It builds `Dockerfile.next` and updates the service.
+Nothing points at it, so this changes nothing — that is the property worth
+having.
 
 **1. Smoke.** `scripts/smoke-next.sh <url>`. Read its header first: the callback
 route fails open by design, so an unauthenticated probe cannot tell verification
@@ -37,8 +49,17 @@ teeth.
 
 ```bash
 pnpm cutover status    acme                                  # read-only
-pnpm cutover repoint   acme --url https://<app>-next-...run.app --from https://<app>-...run.app
-APPLY=1 pnpm cutover repoint acme --url https://<app>-next-...run.app --from https://<app>-...run.app
+
+# --callback-path is REQUIRED and names the path the DESTINATION serves. Rails
+# serves /callbacks/<local_name>; this app serves /api/callbacks/<definition>.
+# `repoint` refuses to run without it rather than carrying the source path over.
+pnpm cutover repoint   acme --url https://<app>-next-...run.app \
+                            --from https://<app>-...run.app \
+                            --callback-path /api/callbacks/cart-item-added
+APPLY=1 pnpm cutover repoint acme --url https://<app>-next-...run.app \
+                            --from https://<app>-...run.app \
+                            --callback-path /api/callbacks/cart-item-added
+
 pnpm cutover status    acme                                  # confirm
 ```
 
@@ -61,8 +82,8 @@ host. The tool knows both and moves them with the callbacks — and refuses to
 touch anything if it cannot first list them, because moving callbacks without
 knowing where the webhooks point is how a company ends up half cut over.
 
-`--callback-path` is required when the two apps serve the callback on different
-paths, which is the normal case for a Rails→Next move. The `callbacks` table
+`--callback-path` is required on every `repoint`, in both directions — the tool
+exits rather than guessing. The `callbacks` table
 row is operator-typed and holds the *Rails* path, so without it the repoint
 would register the Next app at a route it does not serve — and for a callback
 Fluid rescues into a neutral response, the symptom is not an error but a

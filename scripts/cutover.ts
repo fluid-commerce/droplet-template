@@ -765,9 +765,15 @@ async function main() {
   const fromFlag = rest.indexOf("--from");
   const rawFrom = fromFlag >= 0 ? rest[fromFlag + 1] : undefined;
   const fromUrl = rawFrom ? normaliseOrigin("--from", rawFrom) : undefined;
-  // Required when rolling back to Rails, which serves POST /webhook while this
-  // app serves POST /api/webhooks. The direction cannot be inferred from the
-  // urls, so it is stated rather than guessed.
+  // Required for every repoint, in BOTH directions. Unlike the webhook path,
+  // which this app always serves at /api/webhooks, a callback path depends on
+  // the definition and on which app is serving it, so there is no default that
+  // is right more often than it is wrong. Falling back to the stored path is
+  // the dangerous option: `callbacks.url` is operator-typed and during a
+  // Rails->Next move it holds the RAILS path, so the repoint would register
+  // the Next app at a route it does not serve — and a callback 404 is rescued
+  // into a neutral response, so the symptom is a silently missing result at
+  // checkout rather than an error.
   const cbPathFlag = rest.indexOf("--callback-path");
   const callbackPath =
     cbPathFlag >= 0
@@ -783,8 +789,9 @@ async function main() {
     fail(
       "Usage:\n" +
         "  pnpm cutover status    <fluid_shop>\n" +
-        "  APPLY=1 pnpm cutover repoint   <fluid_shop> --url https://... [--from https://old]\n" +
-        "                                 [--webhook-path /webhook] [--callback-path /api/callbacks/x]\n" +
+        "  APPLY=1 pnpm cutover repoint   <fluid_shop> --url https://... " +
+        "--callback-path /api/callbacks/x\n" +
+        "                                 [--from https://old] [--webhook-path /webhook]\n" +
         "  APPLY=1 pnpm cutover reconcile <fluid_shop> --url https://...",
     );
   }
@@ -795,6 +802,16 @@ async function main() {
       break;
     case "repoint":
       if (!url) fail("repoint needs --url or FLUID_DROPLET_URL.");
+      if (!callbackPath)
+        fail(
+          "repoint needs --callback-path — state the path the DESTINATION app " +
+            "serves this callback on.\n" +
+            "  moving to Next:  --callback-path /api/callbacks/<definition-in-kebab-case>\n" +
+            "  rolling back:    --callback-path /callbacks/<local_rails_name>\n" +
+            "Without it the stored (source) path would be carried over, registering " +
+            "the destination at a route it does not serve. Fluid rescues a failing " +
+            "callback into a neutral response, so that does not surface as an error.",
+        );
       await repoint(handle, url, fromUrl, webhookPath, callbackPath);
       break;
     case "reconcile":
