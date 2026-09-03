@@ -64,8 +64,23 @@ function destinationFor(configuredUrl: string, targetOrigin: string): string {
   let path: string;
   try {
     const parsed = new URL(configuredUrl);
+    if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+      fail(`Refusing to build a destination from ${configuredUrl}: not http(s).`);
+    }
     path = `${parsed.pathname}${parsed.search}`;
   } catch {
+    // A PROTOCOL-RELATIVE value ("//host/path") is not a path. `new URL` throws
+    // on it as an absolute url, and resolving it against the target yields
+    // https://host/path — the target origin silently replaced by whatever host
+    // the stored row names. Refuse rather than normalise: a row in that shape
+    // is not something to interpret.
+    if (configuredUrl.startsWith("//")) {
+      fail(
+        `Refusing to build a destination from ${configuredUrl}: a ` +
+          `protocol-relative url would resolve to a different host than ` +
+          `${targetOrigin}.`,
+      );
+    }
     path = configuredUrl.startsWith("/") ? configuredUrl : `/${configuredUrl}`;
   }
   return new URL(path, targetOrigin).toString();
@@ -85,12 +100,25 @@ type FluidWebhook = {
  * listing is company-scoped, and another droplet subscribed to the same
  * resource+event appears in it.
  */
+/**
+ * The two paths a webhook of ours can be registered at.
+ *
+ * Rails serves `POST /webhook` (config/routes.rb) and the Next app serves
+ * `POST /api/webhooks`. Looking for only the Next path meant a first cutover —
+ * where every webhook is still on the Rails path — matched NOTHING, printed a
+ * single ATTN line, and exited zero with the callbacks moved and the webhooks
+ * left behind on Rails.
+ */
+const WEBHOOK_PATHS = ["/api/webhooks", "/webhook"];
+
 function ourWebhooks(
   webhooks: FluidWebhook[],
   origins: string[],
 ): FluidWebhook[] {
   const enabled = dropletConfig.webhooks.filter((w) => w.enabled !== false);
-  const expected = origins.map((origin) => `${origin}/api/webhooks`);
+  const expected = origins.flatMap((origin) =>
+    WEBHOOK_PATHS.map((path) => `${origin}${path}`),
+  );
   return webhooks.filter(
     (w) =>
       expected.includes(w.url) &&
@@ -405,6 +433,27 @@ async function repoint(handle: string, targetUrl: string, fromUrl?: string) {
     });
   }
 
+  // Webhooks are discovered HERE, with the callbacks, not after they have been
+  // mutated. They are part of the same routing unit: a company whose callbacks
+  // moved and whose webhooks did not is half cut over, and finding that out
+  // afterwards means finding it out too late.
+  const webhookDestination = `${targetUrl}/api/webhooks`;
+  let webhookPlans: FluidWebhook[] = [];
+  try {
+    const webhooks = ((await client.listWebhooks())?.webhooks ??
+      []) as FluidWebhook[];
+    webhookPlans = ourWebhooks(webhooks, [
+      targetUrl,
+      ...(fromUrl ? [fromUrl] : []),
+    ]).filter((w) => w.url !== webhookDestination);
+  } catch (error) {
+    fail(
+      `  FAIL  could not list webhooks (${error instanceof Error ? error.message : error}). ` +
+        `NOTHING has been changed — refusing to move callbacks without knowing ` +
+        `where this company's webhooks point.`,
+    );
+  }
+
   console.log(
     `${APPLY ? "REPOINTING" : "DRY RUN for"} ${company.fluidShop} -> ${targetUrl}\n`,
   );
@@ -417,6 +466,11 @@ async function repoint(handle: string, targetUrl: string, fromUrl?: string) {
           : plan.action === "update"
             ? `  WOULD ${plan.name}: update ${plan.current!.uuid} ${plan.current!.url} -> ${plan.destination}`
             : `  WOULD ${plan.name}: create at ${plan.destination} (nothing registered)`,
+      );
+    }
+    for (const webhook of webhookPlans) {
+      console.log(
+        `  WOULD webhook ${webhook.resource}.${webhook.event}: ${webhook.url} -> ${webhookDestination}`,
       );
     }
     console.log(`\nDry run only. Re-run with APPLY=1.`);
@@ -439,8 +493,12 @@ async function repoint(handle: string, targetUrl: string, fromUrl?: string) {
         await client.updateCallback(plan.current!.uuid, {
           url: plan.destination,
         });
-        const url = await adoptToken(client, dri, plan.current!.uuid);
+        // Recorded BEFORE adopting. The url has already moved at this point,
+        // so a failure inside adoptToken must still report this definition as
+        // moved — previously it did not, and the failure message said
+        // "Already moved: (none)" about a company that had just been split.
         done.push({ name: plan.name, from: previous });
+        const url = await adoptToken(client, dri, plan.current!.uuid);
         console.log(`  moved ${plan.name}: ${previous} -> ${url}`);
       } else {
         const uuid = await createAndPersist(
@@ -466,46 +524,40 @@ async function repoint(handle: string, targetUrl: string, fromUrl?: string) {
     }
   }
 
-  // Webhooks are part of the same routing table. A company whose callbacks
-  // moved but whose webhooks did not is half cut over: the async side goes on
-  // being handled by the app that no longer prices its carts.
-  try {
-    const webhooks = ((await client.listWebhooks())?.webhooks ??
-      []) as FluidWebhook[];
-    const origins = [targetUrl, ...(fromUrl ? [fromUrl] : [])];
-    const mine = ourWebhooks(webhooks, origins);
-    const destination = `${targetUrl}/api/webhooks`;
-
-    for (const webhook of mine) {
-      if (webhook.url === destination) {
-        console.log(`  ok    webhook ${webhook.resource}.${webhook.event}`);
-        continue;
-      }
-      // Fluid's update takes the whole registration, not a patch, so the
-      // fields we are NOT changing have to be sent back unchanged — omitting
-      // them would blank the subscription this webhook exists for.
+  // Webhooks, from the set discovered during preflight.
+  const movedWebhooks: string[] = [];
+  for (const webhook of webhookPlans) {
+    const label = `${webhook.resource}.${webhook.event}`;
+    try {
+      // Fluid's update takes the whole registration rather than a patch, so
+      // fields we are not changing are sent back unchanged; omitting them would
+      // blank the subscription this webhook exists for.
       await client.updateWebhook(String(webhook.id), {
         resource: webhook.resource,
         event: webhook.event,
-        url: destination,
+        url: webhookDestination,
         auth_token: process.env.FLUID_WEBHOOK_AUTH_TOKEN ?? "",
         active: true,
       });
-      console.log(
-        `  moved webhook ${webhook.resource}.${webhook.event} -> ${destination}`,
+      movedWebhooks.push(label);
+      console.log(`  moved webhook ${label}: ${webhook.url} -> ${webhookDestination}`);
+    } catch (error) {
+      // Exits NON-ZERO. This used to be caught, logged as ATTN, and followed by
+      // "Done" and exit 0 — reporting success for a company left split across
+      // two apps on its async path.
+      const callbacks = done.length
+        ? done.map((d) => `      callback ${d.name}: at target, was ${d.from}`).join("\n")
+        : "      (no callbacks moved)";
+      const webhooksMoved = movedWebhooks.length
+        ? movedWebhooks.map((w) => `      webhook ${w}: at target`).join("\n")
+        : "      (no webhooks moved)";
+      fail(
+        `  FAIL  webhook ${label}: ${error instanceof Error ? error.message : error}\n` +
+          `\n  This company is now SPLIT. Already moved:\n${callbacks}\n${webhooksMoved}\n` +
+          `\n  Put them back with:\n` +
+          `    APPLY=1 pnpm cutover repoint ${handle} --url ${fromUrl ?? "<old url>"} --from ${targetUrl}`,
       );
     }
-    if (mine.length === 0) {
-      console.log(
-        `  ATTN  no webhooks found at a url this tool recognises. If this ` +
-          `company has any, they still point somewhere else.`,
-      );
-    }
-  } catch (error) {
-    console.error(
-      `  ATTN  callbacks moved but webhooks did not: ` +
-        `${error instanceof Error ? error.message : error}`,
-    );
   }
 
   console.log(

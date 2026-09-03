@@ -55,6 +55,12 @@ a tax callback would be a cart priced without tax. And there is no create
 response whose loss would strand a live registration whose token was issued
 exactly once, to nobody.
 
+The Rails app serves `POST /webhook` and the Next app serves
+`POST /api/webhooks`, so a webhook repoint changes the path as well as the
+host. The tool knows both and moves them with the callbacks — and refuses to
+touch anything if it cannot first list them, because moving callbacks without
+knowing where the webhooks point is how a company ends up half cut over.
+
 `--from` is only a hint. It lets the tool recognise a registration as ours
 before we hold any digest for it, which is the state every company is in on its
 first cutover. Where more than one registration could plausibly be ours, the
