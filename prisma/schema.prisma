@@ -43,7 +43,10 @@ model Company {
   fluidCompanyId           BigInt    @map("fluid_company_id")
   serviceCompanyId         String?   @map("service_company_id")
   companyDropletUuid       String?   @map("company_droplet_uuid")
-  active                   Boolean   @default(false)
+  // Nullable: Rails permits NULL here (db/schema.rb), and Prisma throws
+  // `Inconsistent column data` when it reads a NULL into a required
+  // Boolean — so a single legacy row would break every company read.
+  active                   Boolean?  @default(false)
   uninstalledAt            DateTime? @map("uninstalled_at")
 
   createdAt DateTime @default(now()) @map("created_at")
@@ -121,7 +124,8 @@ model IntegrationSetting {
   id BigInt @id @default(autoincrement())
 
   companyId   BigInt  @map("company_id")
-  enabled     Boolean @default(false)
+  // Nullable for the same reason as companies.active.
+  enabled     Boolean? @default(false)
   settings    Json?   @default("{}")
   credentials Json?   @default("{}")
 

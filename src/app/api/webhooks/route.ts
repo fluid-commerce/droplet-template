@@ -50,18 +50,49 @@ const BOOTSTRAP_EVENTS = [INSTALL_EVENT, "droplet.uninstalled"];
 /**
  * The object a handler should run on.
  *
- * Mirrors what Fluid's own envelope means: when a delivery wraps its body in
- * `payload`, that inner object is the event. Anything else is passed through
- * untouched.
+ * Fluid delivers lifecycle events in two shapes and the SDK recognises both:
+ *
+ *   root form      {resource, event, company, ...}
+ *   envelope form  {name, payload: {company, ...}}
+ *
+ * Forwarding the outer object unchanged broke the envelope form — the handler's
+ * schema needs `company` at the top level, so it threw and the route answered
+ * 500, which Fluid retries indefinitely.
+ *
+ * But unwrapping whenever an object-valued `payload` exists breaks the OTHER
+ * form: a root-form delivery that also carries a domain field named `payload`
+ * would have its real body discarded and `payload`'s contents handed to the
+ * handler instead. So the shape is DECIDED, not sniffed — root fields win,
+ * because their presence is what the SDK used to recognise the event.
  */
-function unwrapPayload(payload: unknown): unknown {
-  if (typeof payload !== "object" || payload === null) return payload;
-  const outer = payload as Record<string, unknown>;
-  const inner = outer.payload;
-  if (typeof inner === "object" && inner !== null && !Array.isArray(inner)) {
-    return inner;
+export function payloadForHandler(body: unknown): unknown {
+  if (typeof body !== "object" || body === null || Array.isArray(body)) {
+    return body;
   }
-  return payload;
+  const outer = body as Record<string, unknown>;
+
+  // Root form: `resource` + `event` at the top level. The body IS the payload,
+  // whatever else it happens to contain.
+  if (typeof outer.resource === "string" && typeof outer.event === "string") {
+    return outer;
+  }
+
+  const inner = outer.payload;
+  const innerIsObject =
+    typeof inner === "object" && inner !== null && !Array.isArray(inner);
+
+  // Envelope form: a `name` discriminator, or a nested resource/event pair.
+  if (innerIsObject) {
+    const nested = inner as Record<string, unknown>;
+    if (
+      typeof outer.name === "string" ||
+      (typeof nested.resource === "string" && typeof nested.event === "string")
+    ) {
+      return inner;
+    }
+  }
+
+  return body;
 }
 
 export const POST = withFluidWebhook(
@@ -121,7 +152,7 @@ export const POST = withFluidWebhook(
       // means an enveloped delivery reaches a handler whose schema requires
       // `company` at the top level: it throws, the route answers 500, and
       // Fluid retries the same shape forever.
-      const handled = await routeEvent(event, unwrapPayload(payload));
+      const handled = await routeEvent(event, payloadForHandler(payload));
       return new NextResponse(null, { status: handled ? 202 : 204 });
     } catch (error) {
       // The payload is never logged here: it carries authentication_token and

@@ -219,17 +219,49 @@ describe("handleDropletUninstalled", () => {
   });
 });
 
-describe("handleDropletInstalled — envelope shapes", () => {
-  it("accepts the enveloped delivery shape Fluid also sends", async () => {
-    // Fluid sends BOTH `{resource, event, company}` and
-    // `{name, payload: {company}}`. The route used to forward the outer object
-    // unchanged, so the enveloped form reached this handler without a top-level
-    // `company`, threw, and answered 500 — which Fluid retries forever. The
-    // smoke test could not catch it, because it only failed on a 401.
-    //
-    // Asserted at the handler boundary: the route now unwraps, so what arrives
-    // here is the inner object either way.
-    await handleDropletInstalled(installPayload);
-    expect(registerCallbacksForCompany).toHaveBeenCalled();
+describe("payloadForHandler — the shape Fluid actually sent", () => {
+  // Asserted on the FUNCTION the route calls, not on the handler. The previous
+  // version of this test called the handler directly with an already-unwrapped
+  // object, so it would have passed even if the route forwarded the wrong thing
+  // entirely — which is the exact defect it was written to catch.
+  const company = { fluid_shop: "acme", name: "Acme" };
+
+  it("passes the inner object for the {name, payload} envelope", async () => {
+    const { payloadForHandler } = await import("@/app/api/webhooks/route");
+    expect(
+      payloadForHandler({ name: "droplet_installed", payload: { company } }),
+    ).toEqual({ company });
+  });
+
+  it("passes the inner object when the envelope nests resource/event", async () => {
+    const { payloadForHandler } = await import("@/app/api/webhooks/route");
+    expect(
+      payloadForHandler({
+        payload: { resource: "droplet", event: "installed", company },
+      }),
+    ).toEqual({ resource: "droplet", event: "installed", company });
+  });
+
+  it("keeps the ROOT object when resource/event are at the top level", async () => {
+    // Even though a `payload` key is present. This is the case the first fix
+    // broke: the SDK recognised the event from the root fields, so the root
+    // object is the payload, and unwrapping would have handed the handler
+    // `{metadata:{}}` and thrown.
+    const { payloadForHandler } = await import("@/app/api/webhooks/route");
+    const body = {
+      resource: "droplet",
+      event: "installed",
+      company,
+      payload: { metadata: {} },
+    };
+    expect(payloadForHandler(body)).toBe(body);
+  });
+
+  it("leaves anything it cannot classify alone", async () => {
+    const { payloadForHandler } = await import("@/app/api/webhooks/route");
+    const body = { company };
+    expect(payloadForHandler(body)).toBe(body);
+    expect(payloadForHandler(null)).toBeNull();
+    expect(payloadForHandler([{ company }])).toEqual([{ company }]);
   });
 });

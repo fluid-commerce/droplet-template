@@ -453,11 +453,57 @@ async function repoint(
   try {
     const webhooks = ((await client.listWebhooks())?.webhooks ??
       []) as FluidWebhook[];
-    webhookPlans = ourWebhooks(webhooks, [
+    const mine = ourWebhooks(webhooks, [
       targetUrl,
       ...(fromUrl ? [fromUrl] : []),
-    ]).filter((w) => w.url !== webhookDestination);
+    ]);
+
+    // COMPLETENESS, matching the callback preflight. Silently proceeding with
+    // whatever subset happened to match is how a company ends up split: a
+    // webhook whose url has drifted to something this tool does not recognise
+    // is simply absent from `mine`, and the run would move everything else and
+    // print Done.
+    //
+    // Exactly one registration per enabled definition, or stop.
+    const enabled = dropletConfig.webhooks.filter((w) => w.enabled !== false);
+    const problems: string[] = [];
+    for (const definition of enabled) {
+      const matches = mine.filter(
+        (w) => w.resource === definition.resource && w.event === definition.event,
+      );
+      const label = `${definition.resource}.${definition.event}`;
+      if (matches.length === 0) {
+        const drifted = webhooks.filter(
+          (w) => w.resource === definition.resource && w.event === definition.event,
+        );
+        problems.push(
+          drifted.length === 0
+            ? `    ${label}: not registered with Fluid at all`
+            : `    ${label}: registered at an unrecognised url — ` +
+              drifted.map((w) => w.url).join(", "),
+        );
+      } else if (matches.length > 1) {
+        // Two owners can subscribe to the same resource+event. Repointing the
+        // wrong one is an outage for the other droplet.
+        problems.push(
+          `    ${label}: ${matches.length} registrations match — ` +
+            matches.map((w) => `${w.id} ${w.url}`).join(", "),
+        );
+      }
+    }
+    if (problems.length > 0) {
+      fail(
+        `  FAIL  this company's webhooks cannot be resolved unambiguously. ` +
+          `NOTHING has been changed:\n${problems.join("\n")}\n` +
+          `\n  Moving the callbacks without them would split this company ` +
+          `across both apps.`,
+      );
+    }
+
+    webhookPlans = mine.filter((w) => w.url !== webhookDestination);
   } catch (error) {
+    // `fail()` calls process.exit, so the completeness check above cannot land
+    // here — this only catches a genuine listing failure.
     fail(
       `  FAIL  could not list webhooks (${error instanceof Error ? error.message : error}). ` +
         `NOTHING has been changed — refusing to move callbacks without knowing ` +
