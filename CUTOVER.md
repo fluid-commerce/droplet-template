@@ -117,6 +117,23 @@ installation registers its callbacks there rather than back onto Rails.
 Do this only once every company has been repointed — it is global, not
 per-tenant, and there is no partial version of it.
 
+**There is a race here, and it needs a freeze.** The step is two global changes:
+move the lifecycle webhooks, then point the active callback rows at the Next
+app. A company that installs between them is handled by Next, which reads the
+still-Rails callback urls out of the shared `callbacks` table and registers that
+company's callbacks *on Rails* — and editing the catalogue row afterwards does
+not move a registration that already exists. The whole procedure then completes
+successfully while that one company is left pointing at a service you are about
+to delete.
+
+Doing the two in the other order is worse: Rails registers a callback pointing
+at Next and discards the verification token, so Next refuses every one of its
+calls behind a neutral 200.
+
+So: pause installs for this droplet across the two changes, or afterwards run
+`pnpm cutover status` for every company created during the window and repoint
+any that came up on Rails.
+
 **5. Retire Rails.** Min-instances to 0 first and leave it a while — that is
 reversible in seconds. Delete only once nothing has needed it.
 

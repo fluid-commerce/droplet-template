@@ -262,17 +262,29 @@ export function withFluidWebhook<Principal>(
       return null;
     });
 
-    // Candidate secrets, most specific first. A reinstall resolves to the
-    // existing company, but Fluid signs that install with the bootstrap secret
-    // because it is issuing new per-company credentials — so both are tried
-    // when the event is eligible for bootstrap. Trying the company secret
-    // first means a normal event never falls back to the shared token.
+    // A bootstrap-eligible event accepts the SHARED secret and nothing else.
+    //
+    // Fluid signs lifecycle events with `fluid_webhook.auth_token`, never with
+    // a company's token, so a per-company secret is not a legitimate signer
+    // here — and accepting one was a cross-tenant takeover. The install handler
+    // selects the company from `fluid_shop` in the payload, so anyone holding
+    // ANY company's webhook_verification_token could sign a `droplet.installed`
+    // naming ANOTHER company's shop and overwrite that company's
+    // authentication_token, webhook_verification_token, DRI and active flag.
+    // The signature verified — against the attacker's own company — and the
+    // handler then wrote to the victim's row.
+    //
+    // Offering only the bootstrap secret for these events closes that: a
+    // company token cannot sign a lifecycle event at all.
     const candidates: Array<{ label: string; secret: string }> = [];
-    if (resolved?.secret) {
+    const isBootstrapEvent = bootstrapEvents.includes(event);
+
+    if (isBootstrapEvent) {
+      if (bootstrapSecret) {
+        candidates.push({ label: "bootstrap", secret: bootstrapSecret });
+      }
+    } else if (resolved?.secret) {
       candidates.push({ label: "company", secret: resolved.secret });
-    }
-    if (bootstrapEvents.includes(event) && bootstrapSecret) {
-      candidates.push({ label: "bootstrap", secret: bootstrapSecret });
     }
 
     if (candidates.length === 0) {

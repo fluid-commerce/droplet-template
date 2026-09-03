@@ -152,3 +152,45 @@ describe("POST /api/webhooks", () => {
     expect(response.status).toBe(401);
   });
 });
+
+describe("POST /api/webhooks — lifecycle events accept only the shared secret", () => {
+  it("refuses an install signed with a COMPANY's webhook token", async () => {
+    // Cross-tenant takeover. The handler picks the company by `fluid_shop` from
+    // the payload, so accepting a per-company signature let anyone holding ANY
+    // company's webhook_verification_token sign a droplet.installed naming
+    // ANOTHER company's shop — overwriting that company's authentication_token,
+    // webhook_verification_token, DRI and active flag. The signature verified
+    // (against the attacker's own company) and the write landed on the victim.
+    //
+    // Fluid signs lifecycle events with fluid_webhook.auth_token, never with a
+    // company token, so no legitimate traffic is refused by this.
+    mockPrisma.company.findFirst.mockResolvedValue({
+      id: 1,
+      webhookVerificationToken: "wvt_attacker",
+    });
+
+    const response = await POST(
+      signedWebhookRequest({
+        secret: "wvt_attacker",
+        body: { ...installBody, company: { ...installBody.company, fluid_shop: "victim.fluid.app" } },
+      }),
+    );
+
+    expect(response.status).toBe(401);
+    expect(handleInstalled).not.toHaveBeenCalled();
+  });
+
+  it("still accepts an install signed with the bootstrap secret", async () => {
+    mockPrisma.company.findFirst.mockResolvedValue({
+      id: 1,
+      webhookVerificationToken: "wvt_someone",
+    });
+
+    const response = await POST(
+      signedWebhookRequest({ secret: BOOTSTRAP, body: installBody }),
+    );
+
+    expect(response.status).toBe(202);
+    expect(handleInstalled).toHaveBeenCalled();
+  });
+});
