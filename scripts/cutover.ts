@@ -39,6 +39,11 @@ import { prisma } from "@/lib/db";
 import { createFluidClient, type FluidClient } from "@/lib/fluid";
 import { callbackStore } from "@/lib/callbacks";
 import { activeCallbacks } from "@/lib/callbacks/registration";
+import {
+  CallbackPathError,
+  destinationPathFor,
+  type CallbackPaths,
+} from "@/lib/cutover/callback-paths";
 import { dropletConfig } from "@/lib/config";
 import { tokenDigest } from "@fluid-app/droplet-sdk";
 
@@ -424,7 +429,7 @@ async function repoint(
   targetUrl: string,
   fromUrl?: string,
   webhookPath = "/api/webhooks",
-  callbackPath?: string,
+  callbackPaths: CallbackPaths = { byName: new Map() },
 ) {
   const company = await loadCompany(handle);
   const dri = company.dropletInstallationUuid!;
@@ -434,6 +439,22 @@ async function repoint(
   const stored = await storedFor(dri);
   const heldUuids = new Set(stored.map((row) => row.uuid));
   const active = await activeCallbacks();
+
+  // Required only when a callback is actually moving. A droplet with no active
+  // callbacks but with per-company webhooks is a legitimate shape, and it must
+  // still be able to repoint those webhooks.
+  if (active.length > 0 && !callbackPaths.bare && callbackPaths.byName.size === 0) {
+    fail(
+      "repoint needs --callback-path — state the path the DESTINATION app serves " +
+        "each callback on.\n" +
+        `  active callbacks: ${active.map((c) => c.name).join(", ")}\n` +
+        "  moving to Next:  --callback-path <definition>=/api/callbacks/<definition-in-kebab-case>\n" +
+        "  rolling back:    --callback-path <definition>=/callbacks/<local_rails_name>\n" +
+        "Without it the stored (source) path would be carried over, registering the " +
+        "destination at a route it does not serve. Fluid rescues a failing callback " +
+        "into a neutral response, so that does not surface as an error.",
+    );
+  }
 
   // ---- PREFLIGHT ----------------------------------------------------------
   // Every definition is resolved before ANY of them is mutated. Resolving as we
@@ -460,9 +481,16 @@ async function repoint(
     // So the destination path is stated when the two apps differ. This is a
     // single override for every definition; with more than one callback on
     // different paths, repoint them in separate runs.
-    const destination = callbackPath
-      ? new URL(callbackPath, targetUrl).toString()
-      : destinationFor(callback.url, targetUrl);
+    let destination: string;
+    try {
+      destination = new URL(
+        destinationPathFor(callback.name, callbackPaths, active.length),
+        targetUrl,
+      ).toString();
+    } catch (error) {
+      if (error instanceof CallbackPathError) fail(`  ${error.message}`);
+      throw error;
+    }
     // Recognition still accepts the stored path on either origin, so a first
     // cutover finds the Rails registration it holds no digest for.
     const expected = [
@@ -594,6 +622,15 @@ async function repoint(
   // exactly rather than reconstructed.
   const done: { name: string; from: string }[] = [];
 
+  // The rollback command has to name the path each callback is going BACK to,
+  // which is the path it had before this run moved it. Emitting the command
+  // without it would print a recovery instruction that the tool then refuses to
+  // execute — at the exact moment a company is split across two apps.
+  const rollbackPaths = () =>
+    done
+      .map((d) => `--callback-path ${d.name}=${new URL(d.from).pathname}`)
+      .join(" ");
+
   for (const plan of plans) {
     if (plan.action === "noop") {
       console.log(`  ok    ${plan.name}: already at ${plan.destination}`);
@@ -631,7 +668,8 @@ async function repoint(
           `\n  This company is now SPLIT across two apps. Already moved:\n${moved}\n` +
           `\n  Put them back with:\n` +
           `    APPLY=1 pnpm cutover repoint ${handle} --url ${fromUrl ?? "<old url>"} ` +
-          `--from ${targetUrl} --webhook-path ${webhookPath === "/api/webhooks" ? "/webhook" : "/api/webhooks"}\n` +
+          `--from ${targetUrl} --webhook-path ${webhookPath === "/api/webhooks" ? "/webhook" : "/api/webhooks"} ` +
+          `${rollbackPaths()}\n` +
           `  then investigate before trying again.`,
       );
     }
@@ -669,7 +707,8 @@ async function repoint(
           `\n  This company is now SPLIT. Already moved:\n${callbacks}\n${webhooksMoved}\n` +
           `\n  Put them back with:\n` +
           `    APPLY=1 pnpm cutover repoint ${handle} --url ${fromUrl ?? "<old url>"} ` +
-          `--from ${targetUrl} --webhook-path ${webhookPath === "/api/webhooks" ? "/webhook" : "/api/webhooks"}`,
+          `--from ${targetUrl} --webhook-path ${webhookPath === "/api/webhooks" ? "/webhook" : "/api/webhooks"} ` +
+          `${rollbackPaths()}`,
       );
     }
   }
@@ -774,11 +813,23 @@ async function main() {
   // the Next app at a route it does not serve — and a callback 404 is rescued
   // into a neutral response, so the symptom is a silently missing result at
   // checkout rather than an error.
-  const cbPathFlag = rest.indexOf("--callback-path");
-  const callbackPath =
-    cbPathFlag >= 0
-      ? normalisePath("--callback-path", rest[cbPathFlag + 1] ?? "")
-      : undefined;
+  // Repeatable. Either a bare path (only valid when one callback is moving) or
+  // `definition=/path` pairs, one per definition.
+  const callbackPaths: CallbackPaths = { byName: new Map() };
+  for (let i = 0; i < rest.length; i++) {
+    if (rest[i] !== "--callback-path") continue;
+    const raw = rest[i + 1] ?? "";
+    const eq = raw.indexOf("=");
+    if (eq > 0) {
+      const name = raw.slice(0, eq);
+      callbackPaths.byName.set(
+        name,
+        normalisePath(`--callback-path ${name}`, raw.slice(eq + 1)),
+      );
+    } else {
+      callbackPaths.bare = normalisePath("--callback-path", raw);
+    }
+  }
   const pathFlag = rest.indexOf("--webhook-path");
   const webhookPath =
     pathFlag >= 0
@@ -789,9 +840,12 @@ async function main() {
     fail(
       "Usage:\n" +
         "  pnpm cutover status    <fluid_shop>\n" +
+        "  pnpm cutover repoint   <fluid_shop> --url https://... " +
+        "--callback-path <definition>=/api/callbacks/x   # dry run\n" +
         "  APPLY=1 pnpm cutover repoint   <fluid_shop> --url https://... " +
-        "--callback-path /api/callbacks/x\n" +
+        "--callback-path <definition>=/api/callbacks/x\n" +
         "                                 [--from https://old] [--webhook-path /webhook]\n" +
+        "        --callback-path is repeatable; give one pair per active definition.\n" +
         "  APPLY=1 pnpm cutover reconcile <fluid_shop> --url https://...",
     );
   }
@@ -802,17 +856,10 @@ async function main() {
       break;
     case "repoint":
       if (!url) fail("repoint needs --url or FLUID_DROPLET_URL.");
-      if (!callbackPath)
-        fail(
-          "repoint needs --callback-path — state the path the DESTINATION app " +
-            "serves this callback on.\n" +
-            "  moving to Next:  --callback-path /api/callbacks/<definition-in-kebab-case>\n" +
-            "  rolling back:    --callback-path /callbacks/<local_rails_name>\n" +
-            "Without it the stored (source) path would be carried over, registering " +
-            "the destination at a route it does not serve. Fluid rescues a failing " +
-            "callback into a neutral response, so that does not surface as an error.",
-        );
-      await repoint(handle, url, fromUrl, webhookPath, callbackPath);
+      // The requirement lives inside repoint(), which knows whether any
+      // callback is actually moving — a webhook-only droplet has none, and must
+      // still be able to repoint its webhooks.
+      await repoint(handle, url, fromUrl, webhookPath, callbackPaths);
       break;
     case "reconcile":
       if (!url) fail("reconcile needs --url or FLUID_DROPLET_URL.");

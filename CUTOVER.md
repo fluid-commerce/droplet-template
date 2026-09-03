@@ -55,10 +55,10 @@ pnpm cutover status    acme                                  # read-only
 # `repoint` refuses to run without it rather than carrying the source path over.
 pnpm cutover repoint   acme --url https://<app>-next-...run.app \
                             --from https://<app>-...run.app \
-                            --callback-path /api/callbacks/cart-item-added
+                            --callback-path cart_item_added=/api/callbacks/cart-item-added
 APPLY=1 pnpm cutover repoint acme --url https://<app>-next-...run.app \
                             --from https://<app>-...run.app \
-                            --callback-path /api/callbacks/cart-item-added
+                            --callback-path cart_item_added=/api/callbacks/cart-item-added
 
 pnpm cutover status    acme                                  # confirm
 ```
@@ -82,8 +82,14 @@ host. The tool knows both and moves them with the callbacks — and refuses to
 touch anything if it cannot first list them, because moving callbacks without
 knowing where the webhooks point is how a company ends up half cut over.
 
-`--callback-path` is required on every `repoint`, in both directions — the tool
-exits rather than guessing. The `callbacks` table
+`--callback-path` is required whenever a callback is moving, in both directions
+— the tool exits rather than guessing. It is **repeatable and keyed by
+definition name**: `--callback-path <definition>=/path`, one per active
+definition. A single bare path is accepted only when exactly one callback is
+active, because one run moves every active callback and sending two definitions
+to one route means the second is refused by a route that holds a token for the
+first — behind a neutral 200. A droplet with no active callbacks does not need
+the flag at all, so a webhook-only repoint still works. The `callbacks` table
 row is operator-typed and holds the *Rails* path, so without it the repoint
 would register the Next app at a route it does not serve — and for a callback
 Fluid rescues into a neutral response, the symptom is not an error but a
@@ -120,8 +126,13 @@ put everything back:
 APPLY=1 pnpm cutover repoint acme \
   --url https://<app>-...run.app \
   --from https://<app>-next-...run.app \
-  --webhook-path /webhook
+  --webhook-path /webhook \
+  --callback-path cart_item_added=/callbacks/cart_item_added
 ```
+
+The rollback needs the **Rails** paths. A failing repoint prints the exact
+command including them, derived from where each callback actually was before
+that run moved it.
 
 The failure message prints the exact rollback command, including
 `--webhook-path`, along with every callback and webhook it had already moved.
@@ -188,7 +199,8 @@ anywhere near a cutover.
 APPLY=1 pnpm cutover repoint acme \
   --url https://<app>-...run.app \
   --from https://<app>-next-...run.app \
-  --webhook-path /webhook
+  --webhook-path /webhook \
+  --callback-path cart_item_added=/callbacks/cart_item_added
 ```
 
 `--webhook-path /webhook` is required going back. Rails serves `POST /webhook`
